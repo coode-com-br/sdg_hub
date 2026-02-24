@@ -1,0 +1,166 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm>=8", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sdg_hub"
+authors = [
+    { name="Red Hat AI Innovation", email="abhandwa@redhat.com" },
+]
+description = "Synthetic Data Generation"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+classifiers = [
+    "Environment :: Console",
+    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+# Core dependencies moved from requirements.txt
+dependencies = [
+    "click>=8.1.7,<9.0.0",
+    "datasets>=4.0.0",
+    "httpx>=0.25.0,<1.0.0",
+    "jinja2",
+    "litellm>=1.73.0,<2.0.0",         # raising cap since tests run without errors related to 'backoff' cap back to <1.75.0 if errors surface
+    "mcp>=1.8.0,<2.0.0",              # Model Context Protocol for MCP agent block (1.8.0+ for streamablehttp_client)
+    "rich",
+    "pandas",
+    "pydantic>=2.0.0,<3.0.0",         # cap before v3; adjust the lower bound to the minimum v2.x you've tested
+    "python-dotenv>=1.0.0,<2.0.0",    # cap before v2 to avoid breaking changes
+    "tenacity>=8.3.0,!=8.4.0",
+    "tqdm>=4.66.2,<5.0.0",
+]
+dynamic = ["version"]
+
+[project.scripts]
+
+[project.urls]
+homepage = "https://ai-innovation.team/"
+source = "https://github.com/Red-Hat-AI-Innovation-Team/sdg_hub"
+issues = "https://github.com/Red-Hat-AI-Innovation-Team/sdg_hub/issues"
+
+[project.optional-dependencies]
+# Development and testing dependencies (lightweight, no ML libraries)
+dev = [
+    "coverage>=7.0.0",
+    "mypy>=1.0.0",
+    "nbconvert>=7.0.0",
+    "pre-commit>=3.0.4,<5.0",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-env",
+    "pytest-html",
+    "ruff>=0.3.4",
+]
+# Minimal dependencies for integration testing only
+# Integration tests run knowledge_generation.ipynb which only needs nest-asyncio
+integration = [
+    "nest-asyncio",
+]
+# Heavy dependencies for example notebooks (knowledge_mixing.ipynb, etc.)
+# NOT required for core functionality testing or integration tests
+examples = [
+    "tabulate>=0.9.0",
+    "transformers>=4.37.0",      # For knowledge_mixing.ipynb, NOT integration tests
+    "langchain-text-splitters",
+    "docling>=2.3.0",            # For document parsing examples
+    "scikit-learn",              # For raft_builder.py utility
+    "polars",                     # For knowledge_mixing_utils.py
+    "matplotlib",
+    "spacy",
+    "nltk",
+    "sentence-transformers",
+    "instructor",
+    "fastapi",
+    "ipykernel",
+]
+
+[tool.uv]
+required-version = ">=0.10.0"
+
+[tool.setuptools_scm]
+version_file = "src/sdg_hub/_version.py"
+# do not include +gREV local version, required for Test PyPI upload
+local_scheme = "no-local-version"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sdg_hub"]
+
+[tool.setuptools.package-data]
+sdg_hub = ["flows/**/*.yaml", "flows/**/*.md"]
+
+[tool.ruff]
+target-version = "py310"
+# same as black's default line length
+line-length = 88
+
+[tool.ruff.lint]
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Fixers will be enabled gradually.
+select = [
+    "E",   # pycodestyle
+    "F",   # Pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "Q",   # flake8-quotes
+    "TID", # flake8-tidy-imports
+]
+ignore = [
+    # some embedded strings are longer than 88 characters
+    "E501",  # line too long
+    "TID252", # Prefer absolute imports over relative imports from parent modules
+]
+
+[tool.ruff.lint.isort]
+# same as .isort.cfg
+from-first = true
+# not supported yet
+# import-heading-future=Future
+# import-heading-stdlib=Standard
+# import-heading-thirdparty=Third Party
+# import-heading-firstparty=First Party
+# import-heading-localfolder=Local
+known-local-folder = ["tuning"]
+
+[tool.mypy]
+disable_error_code = ["import-not-found", "import-untyped"]
+exclude = [
+    "^src/sdg_hub/generate_data\\.py$",
+    "^src/sdg_hub/utils/taxonomy\\.py$",
+    "^src/sdg_hub/default_flows\\.py$",
+    "^src/sdg_hub/llmblock\\.py$",
+    "^src/sdg_hub/utilblocks\\.py$",
+]
+# honor excludes by not following there through imports
+follow_imports = "silent"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+env = [
+    "LOG_LEVEL=WARNING"
+]
+markers = [
+    "integration: notebook-based end-to-end tests (deselect with '-m \"not integration\"')",
+    "slow: long-running tests (>60 s) (deselect with '-m \"not slow\"')",
+]

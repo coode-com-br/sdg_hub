@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+
+config:
+  line-length: false
+  no-emphasis-as-header: false
+  first-line-heading: false
+  code-block-style: false
+  no-duplicate-header: false
+  single-trailing-newline: false
+  no-multiple-blanks: false
+  blanks-around-lists: false
+  no-trailing-punctuation: false
+globs:
+  - "**/*.md"
+ignores:
+  - ".github/**"
+  - "venv/**"
+  - ".venv/**"
+  - ".tox/**"
+  - "examples/**"
+  - "!examples/**/README.md"

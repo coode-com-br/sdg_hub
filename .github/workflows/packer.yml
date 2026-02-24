@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: Build AMI with Packer
+
+on:
+  workflow_dispatch:
+
+env:
+  LC_ALL: en_US.UTF-8
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-ami:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # This is required for OIDC
+      contents: read
+
+    steps:
+      - name: "Harden Runner"
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7
+        with:
+          role-to-assume: arn:aws:iam::851725220677:role/github-actions-packer-role
+          aws-region: us-east-2
+          role-session-name: github-actions-packer  # For tracking in CloudTrail
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@1aa358be5cf73883762b302a3a03abd66e75b232
+
+      - name: Build and create AMI
+        run: |
+          set -euo pipefail
+          cd scripts/packer
+          packer init .
+          packer validate .
+          packer build .
