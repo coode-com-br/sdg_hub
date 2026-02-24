@@ -4,9 +4,7 @@
 
 Construir imagem de base, `sdg_hub_notebook`, para executar o projeto `sdg_hub` em plataforma Red Hat OpenShift.
 
-Projeto `sdg_hub`:
-
-- https://github.com/Red-Hat-AI-Innovation-Team/sdg_hub
+Projeto `sdg_hub`: https://github.com/Red-Hat-AI-Innovation-Team/sdg_hub
 
 ## Placa GPU
 
@@ -20,9 +18,7 @@ A placa GPU utilizada tem a seguinte configuração:
 
 ## Dockerfile
 
-Utilizar a imagem abaixo como imagem de base no Dockerfile:
-
-- quay.io/opendatahub/workbench-images:cuda-jupyter-minimal-ubi9-python-3.12
+Utilizar a imagem de base já configurada em Dockerfile.
 
 Componentes já instalados na imagem de base:
 
