@@ -6,7 +6,7 @@ ENV UV_PROJECT_ENVIRONMENT=/opt/app-root/sdg_hub_venv
 ENV PATH="/opt/app-root/sdg_hub_venv/bin:${PATH}"
 
 WORKDIR /tmp/sdg_hub_notebook
-COPY container/pyproject.toml ./pyproject.toml
+COPY pyproject.toml ./pyproject.toml
 
 RUN python -m pip install --no-cache-dir --upgrade pip uv \
   && uv sync --no-dev --no-install-project \
