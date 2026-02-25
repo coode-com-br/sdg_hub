@@ -1,16 +1,88 @@
-import os
+import shutil
 import urllib.request
 from pathlib import Path
 
 # Requer: pip install huggingface_hub
 from huggingface_hub import snapshot_download
 
+RAPIDOCR_VERSION = "v3.6.0"
+RAPIDOCR_MODEL_BASE_URL = (
+    f"https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/{RAPIDOCR_VERSION}"
+)
+RAPIDOCR_REQUIRED_ASSETS = {
+    "torch/PP-OCRv4/det/ch_PP-OCRv4_det_infer.pth": [
+        f"{RAPIDOCR_MODEL_BASE_URL}/torch/PP-OCRv4/det/ch_PP-OCRv4_det_infer.pth"
+    ],
+    "torch/PP-OCRv4/cls/ch_ptocr_mobile_v2.0_cls_infer.pth": [
+        f"{RAPIDOCR_MODEL_BASE_URL}/torch/PP-OCRv4/cls/ch_ptocr_mobile_v2.0_cls_infer.pth"
+    ],
+    "torch/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer.pth": [
+        f"{RAPIDOCR_MODEL_BASE_URL}/torch/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer.pth"
+    ],
+    "paddle/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer/ppocr_keys_v1.txt": [
+        f"{RAPIDOCR_MODEL_BASE_URL}/paddle/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer/ppocr_keys_v1.txt"
+    ],
+    "fonts/FZYTK.TTF": [
+        f"{RAPIDOCR_MODEL_BASE_URL}/resources/fonts/FZYTK.TTF",
+        f"{RAPIDOCR_MODEL_BASE_URL}/fonts/FZYTK.TTF",
+    ],
+}
 
-def download_docling_artifacts():
+
+def copy_font_from_installed_rapidocr(target: Path) -> bool:
+    """Try to copy FZYTK.TTF from installed rapidocr package resources."""
+    try:
+        import rapidocr  # type: ignore
+    except Exception:
+        return False
+
+    package_root = Path(rapidocr.__file__).resolve().parent
+    candidates = [
+        package_root / "resources" / "fonts" / "FZYTK.TTF",
+        package_root / "fonts" / "FZYTK.TTF",
+        package_root / "ch_ppocr_rec" / "fonts" / "FZYTK.TTF",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(candidate, target)
+            return True
+
+    for candidate in package_root.rglob("FZYTK.TTF"):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(candidate, target)
+        return True
+
+    return False
+
+
+def download_with_fallback(urls: list[str], destination: Path) -> None:
+    """Try a list of URLs until one succeeds."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    last_error = None
+
+    for url in urls:
+        try:
+            with urllib.request.urlopen(url, timeout=120) as response, destination.open(
+                "wb"
+            ) as out_file:
+                out_file.write(response.read())
+            return
+        except Exception as e:
+            last_error = e
+            continue
+
+    raise RuntimeError(f"Falha ao baixar {destination.name}: {last_error}")
+
+
+def download_docling_artifacts(base_path: Path | None = None):
     # Define o caminho de destino
-    # O notebook espera que os artefatos estejam em "examples/knowledge_tuning/docling_artifacts"
-    # Ajuste este caminho base se você não estiver executando da raiz do projeto
-    base_path = Path("examples/knowledge_tuning/docling_artifacts")
+    # Padrão alinhado ao notebook enhanced_summary_knowledge_tuning.
+    if base_path is None:
+        base_path = Path(
+            "examples/knowledge_tuning/enhanced_summary_knowledge_tuning/document_collection/.docling_artifacts"
+        )
+    base_path = base_path.resolve()
     base_path.mkdir(parents=True, exist_ok=True)
 
     print(f"Iniciando download dos artefatos para: {base_path.absolute()}")
@@ -25,32 +97,57 @@ def download_docling_artifacts():
         print(f"Erro ao baixar modelos do Docling: {e}")
         return
 
-    # 2. Baixar modelos do RapidOCR
-    # O notebook configura RAPIDOCR_MODEL_DIR para apontar para rapidocr/models dentro dos artefatos
-    rapidocr_path = base_path / "rapidocr" / "models"
+    # 2. Baixar modelos do RapidOCR (estrutura esperada pelo parser)
+    rapidocr_path = base_path / "RapidOcr"
     rapidocr_path.mkdir(parents=True, exist_ok=True)
 
-    print("\n--> Baixando modelos do RapidOCR (via GitHub Releases)...")
-    # Usando GitHub Releases (v1.3.0) que é estável e público, evitando problemas de auth do HF
-    rapidocr_urls = [
-        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.0/ch_PP-OCRv4_det_infer.onnx",
-        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.0/ch_PP-OCRv4_rec_infer.onnx",
-        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.0/ch_ppocr_mobile_v2.0_cls_infer.onnx",
-    ]
+    print("\n--> Baixando modelos do RapidOCR (ModelScope)...")
 
     # Configurar User-Agent para evitar erros 403/401 em downloads diretos
     opener = urllib.request.build_opener()
     opener.addheaders = [('User-agent', 'Mozilla/5.0')]
     urllib.request.install_opener(opener)
 
-    for url in rapidocr_urls:
-        filename = url.split("/")[-1]
-        filepath = rapidocr_path / filename
-        print(f"   Baixando {filename}...")
+    for relative_path, urls in RAPIDOCR_REQUIRED_ASSETS.items():
+        filepath = rapidocr_path / relative_path
+        print(f"   Baixando {relative_path}...")
         try:
-            urllib.request.urlretrieve(url, filepath)
+            if filepath.exists() and filepath.stat().st_size > 0:
+                print(f"   Já existe: {relative_path}")
+                continue
+            download_with_fallback(urls, filepath)
         except Exception as e:
-            print(f"   Erro ao baixar {filename}: {e}")
+            # Fallback local para fonte
+            if relative_path.endswith("fonts/FZYTK.TTF") and copy_font_from_installed_rapidocr(
+                filepath
+            ):
+                print("   Fonte FZYTK.TTF copiada do pacote rapidocr instalado.")
+                continue
+            print(f"   Erro ao baixar {relative_path}: {e}")
+
+    # Verificação final obrigatória
+    missing = []
+    for relative_path in RAPIDOCR_REQUIRED_ASSETS:
+        target = rapidocr_path / relative_path
+        if not target.exists() or target.stat().st_size == 0:
+            missing.append(relative_path)
+
+    if missing:
+        print("\nERRO: arquivos RapidOCR ausentes após download:")
+        for item in missing:
+            print(f" - {item}")
+        raise RuntimeError("Falha ao preparar artefatos RapidOCR.")
+    else:
+        print("Modelos RapidOCR baixados com sucesso.")
+
+    # Compatibilidade com resoluções sem ponto no nome da pasta
+    compat_path = base_path.parent / "docling_artifacts"
+    if compat_path.resolve() != base_path:
+        shutil.copytree(base_path, compat_path, dirs_exist_ok=True)
+
+    # Garante RAPIDOCR_MODEL_DIR explícito para debug no notebook
+    print(f"DOCLING_ARTIFACTS_PATH={base_path}")
+    print(f"RAPIDOCR_MODEL_DIR={rapidocr_path}")
 
     print("\nProcesso concluído! Agora você pode executar o 'Step 1' no notebook.")
 
