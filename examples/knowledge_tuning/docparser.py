@@ -1,6 +1,7 @@
 # Standard
 from pathlib import Path
 from typing import Iterable
+import logging
 import json
 import time
 
@@ -8,8 +9,14 @@ import time
 from docling.datamodel.base_models import ConversionStatus
 from docling.datamodel.document import ConvertedDocument, DocumentConversionInput
 from docling.document_converter import DocumentConverter
-from logger_config import setup_logger
 import click
+
+try:
+    from sdg_hub.core.utils.logger_config import setup_logger
+except ImportError:
+    def setup_logger(name: str) -> logging.Logger:
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
+        return logging.getLogger(name)
 
 logger = setup_logger(__name__)
 

@@ -18,6 +18,7 @@ See README.md for detailed configuration options and examples.
 
 # Standard
 from pathlib import Path
+import logging
 import json
 import time
 from typing import Dict, Optional
@@ -32,8 +33,16 @@ from docling.datamodel.pipeline_options import (
     PdfPipelineOptions,
 )
 from docling.document_converter import DocumentConverter, PdfFormatOption
-from logger_config import setup_logger
 import click
+
+# `logger_config.py` is not colocated with examples in all environments.
+# Prefer the package logger and fall back to stdlib logging for standalone runs.
+try:
+    from sdg_hub.core.utils.logger_config import setup_logger
+except ImportError:
+    def setup_logger(name: str) -> logging.Logger:
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
+        return logging.getLogger(name)
 
 logger = setup_logger(__name__)
 
