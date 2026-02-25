@@ -240,6 +240,44 @@ def copy_font_from_installed_rapidocr(target: Path) -> bool:
     return False
 
 
+def ensure_docling_models(artifacts_dir: Path) -> None:
+    """Ensure Docling core models are available in the selected artifacts directory."""
+    logger.info(f"Ensuring Docling core models in {artifacts_dir}")
+    try:
+        downloaded_path = Path(DocumentConverter.download_models_hf()).expanduser().resolve()
+    except Exception as e:
+        logger.error("Failed to download Docling models: %s", str(e))
+        raise RuntimeError(
+            "Docling model bootstrap failed (download_models_hf). "
+            "Cannot continue."
+        ) from e
+
+    if downloaded_path != artifacts_dir:
+        shutil.copytree(downloaded_path, artifacts_dir, dirs_exist_ok=True)
+
+    # Some docling builds expect model.safetensors at artifacts root.
+    model_file = artifacts_dir / "model.safetensors"
+    if not model_file.exists() or model_file.stat().st_size == 0:
+        candidates = list(artifacts_dir.rglob("model.safetensors"))
+        if not candidates and downloaded_path.exists():
+            candidates = list(downloaded_path.rglob("model.safetensors"))
+        if candidates:
+            model_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(candidates[0], model_file)
+
+    if not model_file.exists() or model_file.stat().st_size == 0:
+        raise RuntimeError(
+            f"Missing safe tensors file: {model_file}. "
+            "Cannot continue with current Docling setup."
+        )
+
+    # Compatibility alias for environments/libraries that resolve without leading dot.
+    compat_dir = (artifacts_dir.parent / "docling_artifacts").resolve()
+    if compat_dir != artifacts_dir:
+        compat_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(artifacts_dir, compat_dir, dirs_exist_ok=True)
+
+
 def ensure_rapidocr_models(model_root: Path) -> None:
     """Ensure required RapidOCR assets exist locally, downloading when needed."""
     logger.info(f"Ensuring RapidOCR assets in {model_root}")
@@ -363,6 +401,7 @@ def export_document_new_docling(
     rapidocr_model_dir = configure_rapidocr_model_dir(output_dir, artifacts_dir)
     logger.info(f"Using DOCLING_ARTIFACTS_PATH={artifacts_dir}")
     logger.info(f"Using RAPIDOCR_MODEL_DIR={rapidocr_model_dir}")
+    ensure_docling_models(artifacts_dir)
     if pipeline_options.do_ocr:
         ensure_rapidocr_models(rapidocr_model_dir)
     else:
