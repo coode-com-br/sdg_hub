@@ -3,7 +3,7 @@ import urllib.request
 from pathlib import Path
 
 # Requer: pip install huggingface_hub
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, hf_hub_download
 
 
 def download_docling_artifacts():
@@ -30,27 +30,20 @@ def download_docling_artifacts():
     rapidocr_path = base_path / "rapidocr" / "models"
     rapidocr_path.mkdir(parents=True, exist_ok=True)
 
-    print("\n--> Baixando modelos do RapidOCR...")
-    # URLs para os modelos ONNX v4 (detecção, reconhecimento) e o modelo de classificação de texto.
-    # Os modelos v4 estão em uma release mais recente (v1.3.1) e o modelo de classificação tem um nome diferente.
-    rapidocr_urls = [
-        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.2/ch_PP-OCRv4_det_infer.onnx",
-        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.2/ch_PP-OCRv4_rec_infer.onnx",
-        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.2/ch_ppocr_mobile_v2.0_cls_infer.onnx",
+    print("\n--> Baixando modelos do RapidOCR (via Hugging Face)...")
+    # Usando Hugging Face (SWHL/RapidOCR) que é mais estável que releases do GitHub
+    rapidocr_files = [
+        "ch_PP-OCRv4_det_infer.onnx",
+        "ch_PP-OCRv4_rec_infer.onnx",
+        "ch_ppocr_mobile_v2.0_cls_infer.onnx",
     ]
 
-    for url in rapidocr_urls:
-        filename = url.split("/")[-1]
-        filepath = rapidocr_path / filename
-
-        if not filepath.exists():
-            print(f"   Baixando {filename}...")
-            try:
-                urllib.request.urlretrieve(url, filepath)
-            except Exception as e:
-                print(f"   Erro ao baixar {filename}: {e}")
-        else:
-            print(f"   {filename} já existe.")
+    for filename in rapidocr_files:
+        print(f"   Baixando {filename}...")
+        try:
+            hf_hub_download(repo_id="SWHL/RapidOCR", filename=filename, local_dir=rapidocr_path, local_dir_use_symlinks=False)
+        except Exception as e:
+            print(f"   Erro ao baixar {filename}: {e}")
 
     print("\nProcesso concluído! Agora você pode executar o 'Step 1' no notebook.")
 
