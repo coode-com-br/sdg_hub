@@ -17,6 +17,7 @@ See README.md for detailed configuration options and examples.
 """
 
 # Standard
+import importlib
 from pathlib import Path
 import logging
 import json
@@ -131,6 +132,39 @@ def resolve_artifacts_dir(output_dir: Path) -> Path:
     return artifacts_dir
 
 
+def configure_rapidocr_model_dir(output_dir: Path) -> Path:
+    """Force RapidOCR model cache to a writable directory."""
+    configured = os.getenv("RAPIDOCR_MODEL_DIR")
+    model_dir = (
+        Path(configured).expanduser()
+        if configured
+        else output_dir / ".rapidocr_models"
+    )
+    model_dir.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("RAPIDOCR_MODEL_DIR", str(model_dir))
+
+    # RapidOCR 3.x defaults to package-relative cache paths.
+    # Patch known module globals so downloads go to a writable location.
+    modules_to_patch = [
+        "rapidocr.inference_engine.base",
+        "rapidocr.ch_ppocr_rec.main",
+        "rapidocr.inference_engine.onnxruntime",
+        "rapidocr.inference_engine.openvino",
+        "rapidocr.inference_engine.paddle",
+        "rapidocr.inference_engine.torch",
+    ]
+    for module_name in modules_to_patch:
+        try:
+            module = importlib.import_module(module_name)
+            if hasattr(module, "DEFAULT_MODEL_PATH"):
+                setattr(module, "DEFAULT_MODEL_PATH", model_dir)
+        except Exception:
+            # Keep processing even if a module is absent for current backend.
+            continue
+
+    return model_dir
+
+
 def export_document(
     conv_result, doc_filename: str, output_dir: Path, config: dict
 ) -> None:
@@ -199,7 +233,9 @@ def export_document_new_docling(
     pipeline_options = setup_pipeline_options(config_data)
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts_dir = resolve_artifacts_dir(output_dir)
+    rapidocr_model_dir = configure_rapidocr_model_dir(output_dir)
     logger.info(f"Using DOCLING_ARTIFACTS_PATH={artifacts_dir}")
+    logger.info(f"Using RAPIDOCR_MODEL_DIR={rapidocr_model_dir}")
 
     # Newer Docling builds accept artifacts_path directly.
     # Keep a fallback for older versions while preserving the env var override.

@@ -8,4 +8,10 @@ RUN python -m pip install --no-cache-dir sdg-hub \
   && python -m pip install --no-cache-dir -r /tmp/requirements.txt \
   && rm -rf /root/.cache/pip /tmp/requirements.txt
 
+ENV RAPIDOCR_MODEL_DIR=/opt/app-root/src/.rapidocr_models
+ENV DOCLING_ARTIFACTS_PATH=/opt/app-root/src/.docling_artifacts
+
+RUN mkdir -p "${RAPIDOCR_MODEL_DIR}" "${DOCLING_ARTIFACTS_PATH}" \
+  && chmod -R a+rwx "${RAPIDOCR_MODEL_DIR}" "${DOCLING_ARTIFACTS_PATH}"
+
 USER 1001
