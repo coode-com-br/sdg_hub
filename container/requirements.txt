@@ -1,1 +1,2 @@
 sdg-hub[examples]
+PyPDF2
