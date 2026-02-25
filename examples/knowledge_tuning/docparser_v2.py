@@ -152,9 +152,9 @@ def resolve_artifacts_dir(output_dir: Path) -> Path:
         Path(configured).expanduser()
         if configured
         else output_dir / ".docling_artifacts"
-    )
+    ).resolve()
     artifacts_dir.mkdir(parents=True, exist_ok=True)
-    os.environ.setdefault("DOCLING_ARTIFACTS_PATH", str(artifacts_dir))
+    os.environ["DOCLING_ARTIFACTS_PATH"] = str(artifacts_dir)
     return artifacts_dir
 
 
@@ -165,9 +165,9 @@ def configure_rapidocr_model_dir(output_dir: Path) -> Path:
         Path(configured).expanduser()
         if configured
         else output_dir / ".docling_artifacts" / "RapidOcr"
-    )
+    ).resolve()
     model_root.mkdir(parents=True, exist_ok=True)
-    os.environ.setdefault("RAPIDOCR_MODEL_DIR", str(model_root))
+    os.environ["RAPIDOCR_MODEL_DIR"] = str(model_root)
 
     # RapidOCR 3.x defaults to package-relative cache paths.
     # Patch known module globals so downloads go to a writable location.
@@ -230,7 +230,7 @@ def ensure_rapidocr_models(model_root: Path) -> None:
     logger.info(f"Ensuring RapidOCR assets in {model_root}")
     for relative_path, source_urls in RAPIDOCR_REQUIRED_ASSETS.items():
         target = model_root / relative_path
-        if target.exists():
+        if target.exists() and target.stat().st_size > 0:
             continue
         last_error: Exception | None = None
         for source_url in source_urls:
@@ -246,9 +246,9 @@ def ensure_rapidocr_models(model_root: Path) -> None:
         if target.exists():
             continue
 
-        if relative_path.endswith("fonts/FZYTK.TTF") and copy_font_from_installed_rapidocr(target):
-            logger.info("Using FZYTK.TTF from installed rapidocr package resources.")
-            continue
+            if relative_path.endswith("fonts/FZYTK.TTF") and copy_font_from_installed_rapidocr(target):
+                logger.info("Using FZYTK.TTF from installed rapidocr package resources.")
+                continue
 
         if last_error is None:
             last_error = RuntimeError("all download sources failed")
@@ -267,6 +267,7 @@ def ensure_rapidocr_models(model_root: Path) -> None:
         relative_path
         for relative_path in RAPIDOCR_REQUIRED_ASSETS
         if not (model_root / relative_path).exists()
+        or (model_root / relative_path).stat().st_size == 0
     ]
     if missing:
         logger.error("Missing RapidOCR assets after download attempt: %s", missing)
