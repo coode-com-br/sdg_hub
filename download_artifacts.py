@@ -76,6 +76,24 @@ def download_with_fallback(urls: list[str], destination: Path) -> None:
     raise RuntimeError(f"Falha ao baixar {destination.name}: {last_error}")
 
 
+def ensure_root_model_safetensors(base_path: Path) -> Path:
+    """Guarantee model.safetensors at artifacts root."""
+    target = base_path / "model.safetensors"
+    if target.exists() and target.stat().st_size > 0:
+        return target
+
+    candidates = sorted(p for p in base_path.rglob("*.safetensors") if p.is_file())
+    if not candidates:
+        raise RuntimeError(
+            f"Nenhum arquivo .safetensors encontrado em {base_path}. "
+            "Não foi possível criar model.safetensors."
+        )
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(candidates[0], target)
+    return target
+
+
 def download_docling_artifacts(base_path: Path | None = None):
     # Define o caminho de destino
     # Padrão alinhado ao notebook enhanced_summary_knowledge_tuning.
@@ -91,7 +109,9 @@ def download_docling_artifacts(base_path: Path | None = None):
     print("\n--> Baixando modelos de Layout do Docling (ds4sd/docling-models)...")
     try:
         snapshot_download(repo_id="ds4sd/docling-models", local_dir=base_path)
+        model_path = ensure_root_model_safetensors(base_path)
         print("Modelos de Layout baixados com sucesso.")
+        print(f"model.safetensors preparado em: {model_path}")
     except Exception as e:
         print(f"Erro ao baixar modelos do Docling: {e}")
         return
