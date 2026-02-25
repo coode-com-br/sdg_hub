@@ -22,6 +22,7 @@ import json
 import time
 from typing import Dict, Optional
 import yaml
+import logging
 
 # Third Party
 from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
@@ -32,11 +33,23 @@ from docling.datamodel.pipeline_options import (
     PdfPipelineOptions,
 )
 from docling.document_converter import DocumentConverter, PdfFormatOption
-from docling.models.ocr_mac_model import OcrMacOptions
-from docling.models.tesseract_ocr_cli_model import TesseractCliOcrOptions
-from docling.models.tesseract_ocr_model import TesseractOcrOptions
-from logger_config import setup_logger
+
+# from docling.models.ocr_mac_model import OcrMacOptions
+# from docling.models.tesseract_ocr_cli_model import TesseractCliOcrOptions
+# from docling.models.tesseract_ocr_model import TesseractOcrOptions
+# from logger_config import setup_logger
 import click
+
+# `logger_config.py` is not colocated with examples in all environments.
+# Prefer the package logger and fall back to stdlib logging for standalone runs.
+try:
+    from sdg_hub.core.utils.logger_config import setup_logger
+except ImportError:
+
+    def setup_logger(name: str) -> logging.Logger:
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
+        return logging.getLogger(name)
+
 
 logger = setup_logger(__name__)
 
