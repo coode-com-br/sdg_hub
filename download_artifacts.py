@@ -97,7 +97,7 @@ def download_docling_artifacts(base_path: Path | None = None):
         return
 
     # 2. Baixar modelos do RapidOCR (estrutura esperada pelo parser)
-    rapidocr_path = base_path / "rapidocr" / "models"
+    rapidocr_path = base_path / "RapidOcr"
     rapidocr_path.mkdir(parents=True, exist_ok=True)
 
     print("\n--> Baixando modelos do RapidOCR (ModelScope)...")
