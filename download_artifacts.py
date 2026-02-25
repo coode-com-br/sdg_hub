@@ -63,9 +63,10 @@ def download_with_fallback(urls: list[str], destination: Path) -> None:
 
     for url in urls:
         try:
-            with urllib.request.urlopen(url, timeout=120) as response, destination.open(
-                "wb"
-            ) as out_file:
+            with (
+                urllib.request.urlopen(url, timeout=120) as response,
+                destination.open("wb") as out_file,
+            ):
                 out_file.write(response.read())
             return
         except Exception as e:
@@ -79,9 +80,7 @@ def download_docling_artifacts(base_path: Path | None = None):
     # Define o caminho de destino
     # Padrão alinhado ao notebook enhanced_summary_knowledge_tuning.
     if base_path is None:
-        base_path = Path(
-            "examples/knowledge_tuning/enhanced_summary_knowledge_tuning/document_collection/.docling_artifacts"
-        )
+        base_path = Path("examples/knowledge_tuning/docling_artifacts")
     base_path = base_path.resolve()
     base_path.mkdir(parents=True, exist_ok=True)
 
@@ -98,14 +97,14 @@ def download_docling_artifacts(base_path: Path | None = None):
         return
 
     # 2. Baixar modelos do RapidOCR (estrutura esperada pelo parser)
-    rapidocr_path = base_path / "RapidOcr"
+    rapidocr_path = base_path / "rapidocr" / "models"
     rapidocr_path.mkdir(parents=True, exist_ok=True)
 
     print("\n--> Baixando modelos do RapidOCR (ModelScope)...")
 
     # Configurar User-Agent para evitar erros 403/401 em downloads diretos
     opener = urllib.request.build_opener()
-    opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+    opener.addheaders = [("User-agent", "Mozilla/5.0")]
     urllib.request.install_opener(opener)
 
     for relative_path, urls in RAPIDOCR_REQUIRED_ASSETS.items():
@@ -118,9 +117,9 @@ def download_docling_artifacts(base_path: Path | None = None):
             download_with_fallback(urls, filepath)
         except Exception as e:
             # Fallback local para fonte
-            if relative_path.endswith("fonts/FZYTK.TTF") and copy_font_from_installed_rapidocr(
-                filepath
-            ):
+            if relative_path.endswith(
+                "fonts/FZYTK.TTF"
+            ) and copy_font_from_installed_rapidocr(filepath):
                 print("   Fonte FZYTK.TTF copiada do pacote rapidocr instalado.")
                 continue
             print(f"   Erro ao baixar {relative_path}: {e}")
