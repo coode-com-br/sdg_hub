@@ -12,6 +12,6 @@ RUN mkdir -p "${RAPIDOCR_MODEL_DIR}" "${DOCLING_ARTIFACTS_PATH}" \
   && python -m pip install --no-cache-dir -r /tmp/requirements.txt \
   && rm -rf /root/.cache/pip /tmp/requirements.txt \
   && chown -R 1001:0 "${RAPIDOCR_MODEL_DIR}" "${DOCLING_ARTIFACTS_PATH}" \
-  && chmod -R a+rwx "${RAPIDOCR_MODEL_DIR}" "${DOCLING_ARTIFACTS_PATH}"
+  && chmod -R g+w "${RAPIDOCR_MODEL_DIR}" "${DOCLING_ARTIFACTS_PATH}"
 
 USER 1001
