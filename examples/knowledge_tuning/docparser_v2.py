@@ -24,6 +24,8 @@ import json
 import os
 import time
 from typing import Dict, Optional
+from urllib.error import URLError
+from urllib.request import urlopen
 import yaml
 
 # Third Party
@@ -83,6 +85,26 @@ DEFAULT_CONFIG = {
     },
 }
 
+RAPIDOCR_VERSION = "v3.6.0"
+RAPIDOCR_MODEL_BASE_URL = (
+    f"https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/{RAPIDOCR_VERSION}"
+)
+RAPIDOCR_REQUIRED_ASSETS = {
+    "torch/PP-OCRv4/det/ch_PP-OCRv4_det_infer.pth": (
+        f"{RAPIDOCR_MODEL_BASE_URL}/torch/PP-OCRv4/det/ch_PP-OCRv4_det_infer.pth"
+    ),
+    "torch/PP-OCRv4/cls/ch_ptocr_mobile_v2.0_cls_infer.pth": (
+        f"{RAPIDOCR_MODEL_BASE_URL}/torch/PP-OCRv4/cls/ch_ptocr_mobile_v2.0_cls_infer.pth"
+    ),
+    "torch/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer.pth": (
+        f"{RAPIDOCR_MODEL_BASE_URL}/torch/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer.pth"
+    ),
+    "paddle/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer/ppocr_keys_v1.txt": (
+        f"{RAPIDOCR_MODEL_BASE_URL}/paddle/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer/ppocr_keys_v1.txt"
+    ),
+    "fonts/FZYTK.TTF": f"{RAPIDOCR_MODEL_BASE_URL}/fonts/FZYTK.TTF",
+}
+
 
 def load_config(config_path: Optional[Path] = None) -> dict:
     """Load configuration from file or return defaults."""
@@ -135,13 +157,13 @@ def resolve_artifacts_dir(output_dir: Path) -> Path:
 def configure_rapidocr_model_dir(output_dir: Path) -> Path:
     """Force RapidOCR model cache to a writable directory."""
     configured = os.getenv("RAPIDOCR_MODEL_DIR")
-    model_dir = (
+    model_root = (
         Path(configured).expanduser()
         if configured
-        else output_dir / ".rapidocr_models"
+        else output_dir / ".docling_artifacts" / "RapidOcr"
     )
-    model_dir.mkdir(parents=True, exist_ok=True)
-    os.environ.setdefault("RAPIDOCR_MODEL_DIR", str(model_dir))
+    model_root.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("RAPIDOCR_MODEL_DIR", str(model_root))
 
     # RapidOCR 3.x defaults to package-relative cache paths.
     # Patch known module globals so downloads go to a writable location.
@@ -157,12 +179,54 @@ def configure_rapidocr_model_dir(output_dir: Path) -> Path:
         try:
             module = importlib.import_module(module_name)
             if hasattr(module, "DEFAULT_MODEL_PATH"):
-                setattr(module, "DEFAULT_MODEL_PATH", model_dir)
+                setattr(module, "DEFAULT_MODEL_PATH", model_root)
         except Exception:
             # Keep processing even if a module is absent for current backend.
             continue
 
-    return model_dir
+    return model_root
+
+
+def download_to_path(url: str, destination: Path) -> None:
+    """Download a file to destination using stdlib urllib."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with urlopen(url, timeout=120) as response, destination.open("wb") as out_file:
+        out_file.write(response.read())
+
+
+def ensure_rapidocr_models(model_root: Path) -> None:
+    """Ensure required RapidOCR assets exist locally, downloading when needed."""
+    logger.info(f"Ensuring RapidOCR assets in {model_root}")
+    for relative_path, source_url in RAPIDOCR_REQUIRED_ASSETS.items():
+        target = model_root / relative_path
+        if target.exists():
+            continue
+        logger.info(f"Downloading RapidOCR asset: {relative_path}")
+        try:
+            download_to_path(source_url, target)
+        except (OSError, URLError, TimeoutError) as e:
+            logger.error(
+                "Failed to download RapidOCR asset %s from %s: %s",
+                relative_path,
+                source_url,
+                str(e),
+            )
+            raise RuntimeError(
+                f"RapidOCR model download failed for {relative_path}. "
+                "Cannot continue with OCR enabled."
+            ) from e
+
+    missing = [
+        relative_path
+        for relative_path in RAPIDOCR_REQUIRED_ASSETS
+        if not (model_root / relative_path).exists()
+    ]
+    if missing:
+        logger.error("Missing RapidOCR assets after download attempt: %s", missing)
+        raise RuntimeError(
+            "RapidOCR model assets are missing after download attempt. "
+            "Cannot continue with OCR enabled."
+        )
 
 
 def export_document(
@@ -236,21 +300,42 @@ def export_document_new_docling(
     rapidocr_model_dir = configure_rapidocr_model_dir(output_dir)
     logger.info(f"Using DOCLING_ARTIFACTS_PATH={artifacts_dir}")
     logger.info(f"Using RAPIDOCR_MODEL_DIR={rapidocr_model_dir}")
+    if pipeline_options.do_ocr:
+        ensure_rapidocr_models(rapidocr_model_dir)
+    else:
+        logger.info("OCR disabled by configuration; skipping RapidOCR model download.")
 
-    # Newer Docling builds accept artifacts_path directly.
-    # Keep a fallback for older versions while preserving the env var override.
-    try:
-        doc_converter = DocumentConverter(
-            format_options={
-                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-            },
-            artifacts_path=artifacts_dir,
-        )
-    except TypeError:
-        doc_converter = DocumentConverter(
-            format_options={
-                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-            }
+    def build_converter(with_ocr: bool) -> DocumentConverter:
+        pipeline_options.do_ocr = with_ocr
+        # Newer Docling builds accept artifacts_path directly.
+        # Keep a fallback for older versions while preserving the env var override.
+        try:
+            return DocumentConverter(
+                format_options={
+                    InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+                },
+                artifacts_path=artifacts_dir,
+            )
+        except TypeError:
+            return DocumentConverter(
+                format_options={
+                    InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+                }
+            )
+
+    doc_converter = build_converter(with_ocr=pipeline_options.do_ocr)
+
+    def is_missing_rapidocr_model_error(error_text: str) -> bool:
+        text = error_text.lower()
+        return (
+            "rapido cr" in text
+            or "rapidocr" in text
+            or "pp-ocrv4" in text
+            or "/rapidocr/" in text
+        ) and (
+            "does not exists" in text
+            or "is not found" in text
+            or "provided model path" in text
         )
 
     success_count = failure_count = 0
@@ -267,8 +352,20 @@ def export_document_new_docling(
             logger.info(f"Successfully processed {file_path}")
 
         except Exception as e:
+            error_text = str(e)
+            if pipeline_options.do_ocr and is_missing_rapidocr_model_error(error_text):
+                logger.error(
+                    "RapidOCR model missing during conversion for %s: %s",
+                    file_path,
+                    error_text,
+                )
+                raise RuntimeError(
+                    "RapidOCR model missing after bootstrap. "
+                    "Please check network/access to model source and retry."
+                ) from e
+
             failure_count += 1
-            logger.error(f"Failed to process {file_path}: {str(e)}")
+            logger.error(f"Failed to process {file_path}: {error_text}")
             continue
 
     processing_time = time.time() - start_time
