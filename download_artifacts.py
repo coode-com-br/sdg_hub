@@ -30,13 +30,18 @@ def download_docling_artifacts():
     rapidocr_path = base_path / "rapidocr" / "models"
     rapidocr_path.mkdir(parents=True, exist_ok=True)
 
-    print("\n--> Baixando modelos do RapidOCR (via Download Direto)...")
-    # Usando urllib para baixar diretamente do mirror infgrad/RapidOCR, evitando problemas de autenticação da lib
+    print("\n--> Baixando modelos do RapidOCR (via GitHub Releases)...")
+    # Usando GitHub Releases (v1.3.0) que é estável e público, evitando problemas de auth do HF
     rapidocr_urls = [
-        "https://huggingface.co/infgrad/RapidOCR/resolve/main/ch_PP-OCRv4_det_infer.onnx",
-        "https://huggingface.co/infgrad/RapidOCR/resolve/main/ch_PP-OCRv4_rec_infer.onnx",
-        "https://huggingface.co/infgrad/RapidOCR/resolve/main/ch_ppocr_mobile_v2.0_cls_infer.onnx",
+        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.0/ch_PP-OCRv4_det_infer.onnx",
+        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.0/ch_PP-OCRv4_rec_infer.onnx",
+        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.0/ch_ppocr_mobile_v2.0_cls_infer.onnx",
     ]
+
+    # Configurar User-Agent para evitar erros 403/401 em downloads diretos
+    opener = urllib.request.build_opener()
+    opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+    urllib.request.install_opener(opener)
 
     for url in rapidocr_urls:
         filename = url.split("/")[-1]
