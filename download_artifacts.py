@@ -34,9 +34,9 @@ def download_docling_artifacts():
     # URLs para os modelos ONNX v4 (detecção, reconhecimento) e o modelo de classificação de texto.
     # Os modelos v4 estão em uma release mais recente (v1.3.1) e o modelo de classificação tem um nome diferente.
     rapidocr_urls = [
-        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.1/ch_PP-OCRv4_det_infer.onnx",
-        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.1/ch_PP-OCRv4_rec_infer.onnx",
-        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.1/ch_ppocr_mobile_v2.0_cls_infer.onnx",
+        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.2/ch_PP-OCRv4_det_infer.onnx",
+        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.2/ch_PP-OCRv4_rec_infer.onnx",
+        "https://github.com/RapidAI/RapidOCR/releases/download/v1.3.2/ch_ppocr_mobile_v2.0_cls_infer.onnx",
     ]
 
     for url in rapidocr_urls:
