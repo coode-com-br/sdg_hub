@@ -3,7 +3,7 @@ import urllib.request
 from pathlib import Path
 
 # Requer: pip install huggingface_hub
-from huggingface_hub import snapshot_download, hf_hub_download
+from huggingface_hub import snapshot_download
 
 
 def download_docling_artifacts():
@@ -30,18 +30,20 @@ def download_docling_artifacts():
     rapidocr_path = base_path / "rapidocr" / "models"
     rapidocr_path.mkdir(parents=True, exist_ok=True)
 
-    print("\n--> Baixando modelos do RapidOCR (via Hugging Face - Mirror)...")
-    # Usando mirror infgrad/RapidOCR e forçando download anônimo (token=False) para evitar erro 401
-    rapidocr_files = [
-        "ch_PP-OCRv4_det_infer.onnx",
-        "ch_PP-OCRv4_rec_infer.onnx",
-        "ch_ppocr_mobile_v2.0_cls_infer.onnx",
+    print("\n--> Baixando modelos do RapidOCR (via Download Direto)...")
+    # Usando urllib para baixar diretamente do mirror infgrad/RapidOCR, evitando problemas de autenticação da lib
+    rapidocr_urls = [
+        "https://huggingface.co/infgrad/RapidOCR/resolve/main/ch_PP-OCRv4_det_infer.onnx",
+        "https://huggingface.co/infgrad/RapidOCR/resolve/main/ch_PP-OCRv4_rec_infer.onnx",
+        "https://huggingface.co/infgrad/RapidOCR/resolve/main/ch_ppocr_mobile_v2.0_cls_infer.onnx",
     ]
 
-    for filename in rapidocr_files:
+    for url in rapidocr_urls:
+        filename = url.split("/")[-1]
+        filepath = rapidocr_path / filename
         print(f"   Baixando {filename}...")
         try:
-            hf_hub_download(repo_id="infgrad/RapidOCR", filename=filename, local_dir=rapidocr_path, token=False)
+            urllib.request.urlretrieve(url, filepath)
         except Exception as e:
             print(f"   Erro ao baixar {filename}: {e}")
 
