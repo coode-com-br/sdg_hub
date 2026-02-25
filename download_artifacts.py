@@ -139,7 +139,17 @@ def download_docling_artifacts(base_path: Path | None = None):
     try:
         snapshot_download(repo_id="ds4sd/docling-models", local_dir=base_path)
         model_path = ensure_root_model_safetensors(base_path)
-        preproc_path = ensure_root_artifact(base_path, "preprocessor_config.json")
+        preproc_path = ensure_root_artifact(
+            base_path,
+            "preprocessor_config.json",
+            search_names=["preprocessor_config.json", "processor_config.json"],
+            required=False,
+        )
+        if preproc_path is None:
+            raise RuntimeError(
+                "Arquivo obrigatório ausente: preprocessor_config.json "
+                "(nem preprocessor_config.json nem processor_config.json foram encontrados)."
+            )
         config_path = ensure_root_artifact(base_path, "config.json")
         # Optional tokenizer artifacts (copied when available)
         ensure_root_artifact(
