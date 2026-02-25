@@ -22,6 +22,7 @@ from pathlib import Path
 import logging
 import json
 import os
+import shutil
 import time
 from typing import Dict, Optional
 from urllib.error import URLError
@@ -90,19 +91,22 @@ RAPIDOCR_MODEL_BASE_URL = (
     f"https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/{RAPIDOCR_VERSION}"
 )
 RAPIDOCR_REQUIRED_ASSETS = {
-    "torch/PP-OCRv4/det/ch_PP-OCRv4_det_infer.pth": (
+    "torch/PP-OCRv4/det/ch_PP-OCRv4_det_infer.pth": [
         f"{RAPIDOCR_MODEL_BASE_URL}/torch/PP-OCRv4/det/ch_PP-OCRv4_det_infer.pth"
-    ),
-    "torch/PP-OCRv4/cls/ch_ptocr_mobile_v2.0_cls_infer.pth": (
+    ],
+    "torch/PP-OCRv4/cls/ch_ptocr_mobile_v2.0_cls_infer.pth": [
         f"{RAPIDOCR_MODEL_BASE_URL}/torch/PP-OCRv4/cls/ch_ptocr_mobile_v2.0_cls_infer.pth"
-    ),
-    "torch/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer.pth": (
+    ],
+    "torch/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer.pth": [
         f"{RAPIDOCR_MODEL_BASE_URL}/torch/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer.pth"
-    ),
-    "paddle/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer/ppocr_keys_v1.txt": (
+    ],
+    "paddle/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer/ppocr_keys_v1.txt": [
         f"{RAPIDOCR_MODEL_BASE_URL}/paddle/PP-OCRv4/rec/ch_PP-OCRv4_rec_infer/ppocr_keys_v1.txt"
-    ),
-    "fonts/FZYTK.TTF": f"{RAPIDOCR_MODEL_BASE_URL}/fonts/FZYTK.TTF",
+    ],
+    "fonts/FZYTK.TTF": [
+        f"{RAPIDOCR_MODEL_BASE_URL}/resources/fonts/FZYTK.TTF",
+        f"{RAPIDOCR_MODEL_BASE_URL}/fonts/FZYTK.TTF",
+    ],
 }
 
 
@@ -194,27 +198,70 @@ def download_to_path(url: str, destination: Path) -> None:
         out_file.write(response.read())
 
 
+def copy_font_from_installed_rapidocr(target: Path) -> bool:
+    """Try to copy FZYTK.TTF from installed rapidocr package resources."""
+    try:
+        import rapidocr  # type: ignore
+    except Exception:
+        return False
+
+    package_root = Path(rapidocr.__file__).resolve().parent
+    candidates = [
+        package_root / "resources" / "fonts" / "FZYTK.TTF",
+        package_root / "fonts" / "FZYTK.TTF",
+        package_root / "ch_ppocr_rec" / "fonts" / "FZYTK.TTF",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(candidate, target)
+            return True
+
+    for candidate in package_root.rglob("FZYTK.TTF"):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(candidate, target)
+        return True
+
+    return False
+
+
 def ensure_rapidocr_models(model_root: Path) -> None:
     """Ensure required RapidOCR assets exist locally, downloading when needed."""
     logger.info(f"Ensuring RapidOCR assets in {model_root}")
-    for relative_path, source_url in RAPIDOCR_REQUIRED_ASSETS.items():
+    for relative_path, source_urls in RAPIDOCR_REQUIRED_ASSETS.items():
         target = model_root / relative_path
         if target.exists():
             continue
-        logger.info(f"Downloading RapidOCR asset: {relative_path}")
-        try:
-            download_to_path(source_url, target)
-        except (OSError, URLError, TimeoutError) as e:
-            logger.error(
-                "Failed to download RapidOCR asset %s from %s: %s",
-                relative_path,
-                source_url,
-                str(e),
-            )
-            raise RuntimeError(
-                f"RapidOCR model download failed for {relative_path}. "
-                "Cannot continue with OCR enabled."
-            ) from e
+        last_error: Exception | None = None
+        for source_url in source_urls:
+            logger.info(f"Downloading RapidOCR asset: {relative_path} from {source_url}")
+            try:
+                download_to_path(source_url, target)
+                last_error = None
+                break
+            except (OSError, URLError, TimeoutError) as e:
+                last_error = e
+                continue
+
+        if target.exists():
+            continue
+
+        if relative_path.endswith("fonts/FZYTK.TTF") and copy_font_from_installed_rapidocr(target):
+            logger.info("Using FZYTK.TTF from installed rapidocr package resources.")
+            continue
+
+        if last_error is None:
+            last_error = RuntimeError("all download sources failed")
+
+        logger.error(
+            "Failed to download RapidOCR asset %s from all sources: %s",
+            relative_path,
+            str(last_error),
+        )
+        raise RuntimeError(
+            f"RapidOCR model download failed for {relative_path}. "
+            "Cannot continue with OCR enabled."
+        ) from last_error
 
     missing = [
         relative_path
