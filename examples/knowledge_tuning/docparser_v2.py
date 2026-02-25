@@ -158,16 +158,31 @@ def resolve_artifacts_dir(output_dir: Path) -> Path:
     return artifacts_dir
 
 
-def configure_rapidocr_model_dir(output_dir: Path) -> Path:
-    """Force RapidOCR model cache to a writable directory."""
+def configure_rapidocr_model_dir(output_dir: Path, artifacts_dir: Path) -> Path:
+    """Force RapidOCR model cache to align with Docling artifacts directory."""
+    model_root = (artifacts_dir / "RapidOcr").resolve()
     configured = os.getenv("RAPIDOCR_MODEL_DIR")
-    model_root = (
-        Path(configured).expanduser()
-        if configured
-        else output_dir / ".docling_artifacts" / "RapidOcr"
-    ).resolve()
     model_root.mkdir(parents=True, exist_ok=True)
     os.environ["RAPIDOCR_MODEL_DIR"] = str(model_root)
+
+    # Migrate models from legacy locations when present.
+    legacy_dirs = [
+        (output_dir / "rapidocr_models").resolve(),
+        (output_dir / ".rapidocr_models").resolve(),
+    ]
+    if configured:
+        configured_path = Path(configured).expanduser().resolve()
+        if configured_path != model_root:
+            legacy_dirs.insert(0, configured_path)
+
+    for legacy_dir in legacy_dirs:
+        if legacy_dir.exists() and legacy_dir != model_root:
+            logger.warning(
+                "Migrating RapidOCR assets from legacy path %s to %s",
+                legacy_dir,
+                model_root,
+            )
+            shutil.copytree(legacy_dir, model_root, dirs_exist_ok=True)
 
     # RapidOCR 3.x defaults to package-relative cache paths.
     # Patch known module globals so downloads go to a writable location.
@@ -243,12 +258,12 @@ def ensure_rapidocr_models(model_root: Path) -> None:
                 last_error = e
                 continue
 
-        if target.exists():
+        if target.exists() and target.stat().st_size > 0:
             continue
 
-            if relative_path.endswith("fonts/FZYTK.TTF") and copy_font_from_installed_rapidocr(target):
-                logger.info("Using FZYTK.TTF from installed rapidocr package resources.")
-                continue
+        if relative_path.endswith("fonts/FZYTK.TTF") and copy_font_from_installed_rapidocr(target):
+            logger.info("Using FZYTK.TTF from installed rapidocr package resources.")
+            continue
 
         if last_error is None:
             last_error = RuntimeError("all download sources failed")
@@ -345,7 +360,7 @@ def export_document_new_docling(
     pipeline_options = setup_pipeline_options(config_data)
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts_dir = resolve_artifacts_dir(output_dir)
-    rapidocr_model_dir = configure_rapidocr_model_dir(output_dir)
+    rapidocr_model_dir = configure_rapidocr_model_dir(output_dir, artifacts_dir)
     logger.info(f"Using DOCLING_ARTIFACTS_PATH={artifacts_dir}")
     logger.info(f"Using RAPIDOCR_MODEL_DIR={rapidocr_model_dir}")
     if pipeline_options.do_ocr:
