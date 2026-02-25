@@ -20,6 +20,7 @@ See README.md for detailed configuration options and examples.
 from pathlib import Path
 import logging
 import json
+import os
 import time
 from typing import Dict, Optional
 import yaml
@@ -117,6 +118,19 @@ def setup_pipeline_options(config: dict) -> PdfPipelineOptions:
     return pipeline_options
 
 
+def resolve_artifacts_dir(output_dir: Path) -> Path:
+    """Resolve a writable Docling artifacts directory for OCR/model downloads."""
+    configured = os.getenv("DOCLING_ARTIFACTS_PATH")
+    artifacts_dir = (
+        Path(configured).expanduser()
+        if configured
+        else output_dir / ".docling_artifacts"
+    )
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("DOCLING_ARTIFACTS_PATH", str(artifacts_dir))
+    return artifacts_dir
+
+
 def export_document(
     conv_result, doc_filename: str, output_dir: Path, config: dict
 ) -> None:
@@ -183,13 +197,26 @@ def export_document_new_docling(
     logger.info(f"Found {len(file_paths)} PDF files to process")
 
     pipeline_options = setup_pipeline_options(config_data)
-    doc_converter = DocumentConverter(
-        format_options={
-            InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-        }
-    )
-
     output_dir.mkdir(parents=True, exist_ok=True)
+    artifacts_dir = resolve_artifacts_dir(output_dir)
+    logger.info(f"Using DOCLING_ARTIFACTS_PATH={artifacts_dir}")
+
+    # Newer Docling builds accept artifacts_path directly.
+    # Keep a fallback for older versions while preserving the env var override.
+    try:
+        doc_converter = DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+            },
+            artifacts_path=artifacts_dir,
+        )
+    except TypeError:
+        doc_converter = DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+            }
+        )
+
     success_count = failure_count = 0
     start_time = time.time()
 
