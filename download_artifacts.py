@@ -94,6 +94,35 @@ def ensure_root_model_safetensors(base_path: Path) -> Path:
     return target
 
 
+def ensure_root_artifact(
+    base_path: Path,
+    target_name: str,
+    *,
+    search_names: list[str] | None = None,
+    required: bool = True,
+) -> Path | None:
+    """Guarantee an artifact file exists at artifacts root."""
+    target = base_path / target_name
+    if target.exists() and target.stat().st_size > 0:
+        return target
+
+    names = search_names or [target_name]
+    candidates: list[Path] = []
+    for name in names:
+        candidates.extend(p for p in base_path.rglob(name) if p.is_file())
+
+    if not candidates:
+        if required:
+            raise RuntimeError(
+                f"Arquivo obrigatório ausente: {target_name} em {base_path}."
+            )
+        return None
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(candidates[0], target)
+    return target
+
+
 def download_docling_artifacts(base_path: Path | None = None):
     # Define o caminho de destino
     # Padrão alinhado ao notebook enhanced_summary_knowledge_tuning.
@@ -110,8 +139,28 @@ def download_docling_artifacts(base_path: Path | None = None):
     try:
         snapshot_download(repo_id="ds4sd/docling-models", local_dir=base_path)
         model_path = ensure_root_model_safetensors(base_path)
+        preproc_path = ensure_root_artifact(base_path, "preprocessor_config.json")
+        config_path = ensure_root_artifact(base_path, "config.json")
+        # Optional tokenizer artifacts (copied when available)
+        ensure_root_artifact(
+            base_path,
+            "tokenizer_config.json",
+            required=False,
+        )
+        ensure_root_artifact(
+            base_path,
+            "tokenizer.json",
+            required=False,
+        )
+        ensure_root_artifact(
+            base_path,
+            "special_tokens_map.json",
+            required=False,
+        )
         print("Modelos de Layout baixados com sucesso.")
         print(f"model.safetensors preparado em: {model_path}")
+        print(f"preprocessor_config.json preparado em: {preproc_path}")
+        print(f"config.json preparado em: {config_path}")
     except Exception as e:
         print(f"Erro ao baixar modelos do Docling: {e}")
         return
