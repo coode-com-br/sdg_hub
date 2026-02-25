@@ -1,0 +1,30 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: sdg-hub-notebook
+spec:
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: "custom:sdg-hub-notebook-1.0"
+  resources: {}
+  successfulBuildsHistoryLimit: 2
+  failedBuildsHistoryLimit: 2
+  strategy:
+    type: Docker
+    #dockerStrategy:
+    #  dockerfilePath: Dockerfile-torch
+    #  buildArgs:
+    #    - name: MODEL_ID
+    #      value: RedHatAI/whisper-large-v3-turbo-quantized.w4a16
+  postCommit: {}
+  source:
+    type: Git
+    git:
+      uri: "https://github.com/coode-com-br/sdg_hub.git"
+      ref: main
+    contextDir: "container"
+    #sourceSecret:
+    #  name: git-auth
+  runPolicy: Serial
