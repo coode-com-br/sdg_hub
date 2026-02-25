@@ -30,8 +30,8 @@ def download_docling_artifacts():
     rapidocr_path = base_path / "rapidocr" / "models"
     rapidocr_path.mkdir(parents=True, exist_ok=True)
 
-    print("\n--> Baixando modelos do RapidOCR (via Hugging Face - Mirror Alternativo)...")
-    # Usando mirror wairrr/rapidocr-models e forçando download anônimo para evitar erro 401
+    print("\n--> Baixando modelos do RapidOCR (via Hugging Face - Mirror)...")
+    # Usando mirror infgrad/RapidOCR e forçando download anônimo (token=False) para evitar erro 401
     rapidocr_files = [
         "ch_PP-OCRv4_det_infer.onnx",
         "ch_PP-OCRv4_rec_infer.onnx",
@@ -41,7 +41,7 @@ def download_docling_artifacts():
     for filename in rapidocr_files:
         print(f"   Baixando {filename}...")
         try:
-            hf_hub_download(repo_id="wairrr/rapidocr-models", filename=filename, local_dir=rapidocr_path, token=False)
+            hf_hub_download(repo_id="infgrad/RapidOCR", filename=filename, local_dir=rapidocr_path, token=False)
         except Exception as e:
             print(f"   Erro ao baixar {filename}: {e}")
 
