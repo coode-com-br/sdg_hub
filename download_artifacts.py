@@ -30,8 +30,8 @@ def download_docling_artifacts():
     rapidocr_path = base_path / "rapidocr" / "models"
     rapidocr_path.mkdir(parents=True, exist_ok=True)
 
-    print("\n--> Baixando modelos do RapidOCR (via Hugging Face)...")
-    # Usando Hugging Face (SWHL/RapidOCR) que é mais estável que releases do GitHub
+    print("\n--> Baixando modelos do RapidOCR (via Hugging Face - Mirror)...")
+    # Usando mirror infgrad/RapidOCR que possui os arquivos na raiz do repositório
     rapidocr_files = [
         "ch_PP-OCRv4_det_infer.onnx",
         "ch_PP-OCRv4_rec_infer.onnx",
@@ -41,7 +41,7 @@ def download_docling_artifacts():
     for filename in rapidocr_files:
         print(f"   Baixando {filename}...")
         try:
-            hf_hub_download(repo_id="SWHL/RapidOCR", filename=filename, local_dir=rapidocr_path, local_dir_use_symlinks=False)
+            hf_hub_download(repo_id="infgrad/RapidOCR", filename=filename, local_dir=rapidocr_path)
         except Exception as e:
             print(f"   Erro ao baixar {filename}: {e}")
 
