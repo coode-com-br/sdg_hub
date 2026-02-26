@@ -1,6 +1,10 @@
 FROM quay.io/opendatahub/workbench-images:cuda-jupyter-minimal-ubi9-python-3.12-2025a_20250903
 
-#USER 0
+ENV UPGRADE_PIP_TO_LATEST=1
+
+USER 1001
+
+WORKDIR /opt/app-root/src
 
 COPY requirements.txt requirements.txt
 
@@ -12,4 +16,4 @@ RUN python -m pip install --no-cache-dir sdg-hub \
   && python -m pip install --no-cache-dir -r requirements.txt \
   && rm -rf /root/.cache/pip requirements.txt
 
-#USER 1001
+USER 1001
