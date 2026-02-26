@@ -9,7 +9,7 @@ COPY requirements.txt requirements.txt
 #mkdir -p "${RAPIDOCR_MODEL_DIR}" "${DOCLING_ARTIFACTS_PATH}" \
 
 RUN python -m pip install --no-cache-dir sdg-hub \
-  && python -m pip install --no-cache-dir -r /tmp/requirements.txt \
+  && python -m pip install --no-cache-dir -r requirements.txt \
   && rm -rf /root/.cache/pip requirements.txt
 
 #USER 1001
