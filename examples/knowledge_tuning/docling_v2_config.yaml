@@ -1,6 +1,6 @@
 export:
   formats:
-    doctags: false
+    doctags: true
     html: false
     json: false
     markdown: true
