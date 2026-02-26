@@ -12,8 +12,9 @@ COPY requirements.txt requirements.txt
 
 RUN python -m pip install --no-cache-dir sdg-hub \
   && python -m pip install --no-cache-dir -r requirements.txt \
-  && rm -rf /root/.cache/pip requirements.txt \
-  && chown -R 1001:0 "/opt/app-root/lib/python3.12/site-packages/rapidocr"
+  && rm -rf /root/.cache/pip requirements.txt
 #&& chmod -R g+w "${RAPIDOCR_MODEL_DIR}" "${DOCLING_ARTIFACTS_PATH}"
+
+RUN chown -R 1001:0 "/opt/app-root/lib/python3.12/site-packages/rapidocr"
 
 USER 1001
