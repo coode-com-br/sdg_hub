@@ -18,7 +18,9 @@ See README.md for detailed configuration options and examples.
 
 # Standard
 from pathlib import Path
+import logging
 import json
+import os
 import time
 from typing import Dict, Optional
 import yaml
@@ -33,11 +35,24 @@ from docling.datamodel.pipeline_options import (
 )
 from docling.document_converter import DocumentConverter, PdfFormatOption
 
+import click
+
 # from docling.models.ocr_mac_model import OcrMacOptions
 # from docling.models.tesseract_ocr_cli_model import TesseractCliOcrOptions
 # from docling.models.tesseract_ocr_model import TesseractOcrOptions
-from logger_config import setup_logger
-import click
+try:
+    from sdg_hub.core.utils.logger_config import setup_logger
+except ModuleNotFoundError:
+    # Fallback for running this script directly without sdg_hub installed in PYTHONPATH.
+    def setup_logger(name: str) -> logging.Logger:
+        log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+        logger = logging.getLogger(name)
+        logger.setLevel(log_level)
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter("%(message)s"))
+            logger.addHandler(handler)
+        return logger
 
 logger = setup_logger(__name__)
 
