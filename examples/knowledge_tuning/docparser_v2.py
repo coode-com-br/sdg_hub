@@ -32,9 +32,10 @@ from docling.datamodel.pipeline_options import (
     PdfPipelineOptions,
 )
 from docling.document_converter import DocumentConverter, PdfFormatOption
-from docling.models.ocr_mac_model import OcrMacOptions
-from docling.models.tesseract_ocr_cli_model import TesseractCliOcrOptions
-from docling.models.tesseract_ocr_model import TesseractOcrOptions
+
+# from docling.models.ocr_mac_model import OcrMacOptions
+# from docling.models.tesseract_ocr_cli_model import TesseractCliOcrOptions
+# from docling.models.tesseract_ocr_model import TesseractOcrOptions
 from logger_config import setup_logger
 import click
 
