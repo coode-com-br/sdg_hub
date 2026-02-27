@@ -18,41 +18,21 @@ See README.md for detailed configuration options and examples.
 
 # Standard
 from pathlib import Path
-import logging
 import json
-import os
 import time
-from typing import Dict, Optional
+from typing import Optional
 import yaml
 
 # Third Party
-from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
-from docling.datamodel.base_models import InputFormat
-from docling.datamodel.pipeline_options import (
+from docling.datamodel.accelerator_options import (
     AcceleratorDevice,
     AcceleratorOptions,
-    PdfPipelineOptions,
 )
+from docling.datamodel.base_models import InputFormat
+from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.document_converter import DocumentConverter, PdfFormatOption
-
+from logger_config import setup_logger
 import click
-
-# from docling.models.ocr_mac_model import OcrMacOptions
-# from docling.models.tesseract_ocr_cli_model import TesseractCliOcrOptions
-# from docling.models.tesseract_ocr_model import TesseractOcrOptions
-try:
-    from sdg_hub.core.utils.logger_config import setup_logger
-except ModuleNotFoundError:
-    # Fallback for running this script directly without sdg_hub installed in PYTHONPATH.
-    def setup_logger(name: str) -> logging.Logger:
-        log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-        logger = logging.getLogger(name)
-        logger.setLevel(log_level)
-        if not logger.handlers:
-            handler = logging.StreamHandler()
-            handler.setFormatter(logging.Formatter("%(message)s"))
-            logger.addHandler(handler)
-        return logger
 
 logger = setup_logger(__name__)
 

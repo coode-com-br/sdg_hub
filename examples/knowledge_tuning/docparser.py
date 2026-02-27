@@ -1,30 +1,15 @@
 # Standard
 from pathlib import Path
 from typing import Iterable
-import logging
 import json
-import os
 import time
 
 # Third Party
 from docling.datamodel.base_models import ConversionStatus
 from docling.datamodel.document import ConvertedDocument, DocumentConversionInput
 from docling.document_converter import DocumentConverter
+from logger_config import setup_logger
 import click
-
-try:
-    from sdg_hub.core.utils.logger_config import setup_logger
-except ModuleNotFoundError:
-    # Fallback for running this script directly without sdg_hub installed in PYTHONPATH.
-    def setup_logger(name: str) -> logging.Logger:
-        log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-        logger = logging.getLogger(name)
-        logger.setLevel(log_level)
-        if not logger.handlers:
-            handler = logging.StreamHandler()
-            handler.setFormatter(logging.Formatter("%(message)s"))
-            logger.addHandler(handler)
-        return logger
 
 logger = setup_logger(__name__)
 
