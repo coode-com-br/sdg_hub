@@ -36,7 +36,7 @@ blocks:
     max_tokens: 1536
     temperature: 0.3
     n: 1
-    async_mode: true
+    async_mode: false
 - block_type: LLMResponseExtractorBlock
   block_config:
     block_name: extract_icl
