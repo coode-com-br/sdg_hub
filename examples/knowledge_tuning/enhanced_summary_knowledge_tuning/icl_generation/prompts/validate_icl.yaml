@@ -15,6 +15,7 @@
     5) Questions are clear and unambiguous.
     6) domain is one of: finance, healthcare, legal, technology, education, government, science, operations, hr, general.
     7) domain is semantically appropriate for the document.
+    8) Each question text must be clean (no leading list markers like "-", "*", "1.").
 
     Source document:
     {{document}}
