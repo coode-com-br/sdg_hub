@@ -57,11 +57,8 @@ blocks:
     block_name: parse_icl_validation
     input_cols: extract_icl_validation_content
     output_cols:
-    - validation_pass
-    - validation_feedback
+    - validation_raw_text
     start_tags:
-    - '[VALIDATION_PASS]'
-    - '[VALIDATION_FEEDBACK]'
+    - ''
     end_tags:
-    - '[/VALIDATION_PASS]'
-    - '[/VALIDATION_FEEDBACK]'
+    - ''
