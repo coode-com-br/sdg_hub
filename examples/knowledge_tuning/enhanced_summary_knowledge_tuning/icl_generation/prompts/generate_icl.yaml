@@ -1,0 +1,39 @@
+# Prompt used in: ICL Seed Generation Flow
+---
+- role: system
+  content: You are a precise assistant that creates high-quality in-context learning examples for SDG Hub.
+
+- role: user
+  content: |
+    Create ICL fields from the document below.
+
+    Requirements:
+    - document_outline: one concise sentence that summarizes the whole document.
+    - icl_document: a representative excerpt copied from the document (between 120 and 260 words).
+    - icl_query_1, icl_query_2, icl_query_3: three different standalone questions answerable from icl_document.
+    - domain: short domain label in English (examples: finance, healthcare, legal, technology, education, government, science, operations, general).
+    - Keep the same language as the document for document_outline and questions.
+    - Do not invent facts that are not present in the document.
+
+    Return only the following tags and nothing else:
+    [DOCUMENT_OUTLINE]
+    ...
+    [/DOCUMENT_OUTLINE]
+    [ICL_DOCUMENT]
+    ...
+    [/ICL_DOCUMENT]
+    [ICL_QUERY_1]
+    ...
+    [/ICL_QUERY_1]
+    [ICL_QUERY_2]
+    ...
+    [/ICL_QUERY_2]
+    [ICL_QUERY_3]
+    ...
+    [/ICL_QUERY_3]
+    [DOMAIN]
+    ...
+    [/DOMAIN]
+
+    Document:
+    {{document}}
