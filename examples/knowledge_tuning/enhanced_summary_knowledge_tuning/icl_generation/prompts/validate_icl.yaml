@@ -1,0 +1,43 @@
+# Prompt used in: ICL Seed Validation Flow
+---
+- role: system
+  content: You are a strict quality validator for SDG Hub ICL seed data.
+
+- role: user
+  content: |
+    Validate the generated ICL package below against the source document.
+
+    Validation criteria (all must pass):
+    1) document_outline accurately represents the source document.
+    2) icl_document is representative and grounded in the source document.
+    3) Questions are answerable from icl_document without external knowledge.
+    4) Questions are diverse and non-duplicative.
+    5) Questions are clear and unambiguous.
+    6) domain is one of: finance, healthcare, legal, technology, education, government, science, operations, hr, general.
+    7) domain is semantically appropriate for the document.
+
+    Source document:
+    {{document}}
+
+    Candidate ICL:
+    [DOCUMENT_OUTLINE]
+    {{document_outline}}
+    [/DOCUMENT_OUTLINE]
+    [ICL_DOCUMENT]
+    {{icl_document}}
+    [/ICL_DOCUMENT]
+    [ICL_QUERIES]
+    {{icl_queries_text}}
+    [/ICL_QUERIES]
+    [DOMAIN]
+    {{domain}}
+    [/DOMAIN]
+
+    Output format:
+    [VALIDATION_PASS]
+    YES or NO
+    [/VALIDATION_PASS]
+    [VALIDATION_FEEDBACK]
+    If YES, write "OK".
+    If NO, provide short actionable fixes.
+    [/VALIDATION_FEEDBACK]

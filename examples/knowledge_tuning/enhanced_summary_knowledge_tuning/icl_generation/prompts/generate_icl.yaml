@@ -10,8 +10,12 @@
     Requirements:
     - document_outline: one concise sentence that summarizes the whole document.
     - icl_document: a representative excerpt copied from the document (between 120 and 260 words).
-    - icl_query_1, icl_query_2, icl_query_3: three different standalone questions answerable from icl_document.
-    - domain: short domain label in English (examples: finance, healthcare, legal, technology, education, government, science, operations, general).
+    - Prefer sections with actionable or conceptual content (policies, procedures, rules, key statements, findings).
+    - Avoid noisy sections when possible (revision logs, boilerplate metadata, isolated page artifacts).
+    - Decide how many questions are needed based on document complexity and coverage.
+    - Generate between 1 and {{icl_max_queries}} standalone questions answerable from icl_document.
+    - The questions must be diverse (avoid near-duplicates).
+    - domain must be exactly one label from: finance, healthcare, legal, technology, education, government, science, operations, hr, general.
     - Keep the same language as the document for document_outline and questions.
     - Do not invent facts that are not present in the document.
 
@@ -22,15 +26,13 @@
     [ICL_DOCUMENT]
     ...
     [/ICL_DOCUMENT]
-    [ICL_QUERY_1]
-    ...
-    [/ICL_QUERY_1]
-    [ICL_QUERY_2]
-    ...
-    [/ICL_QUERY_2]
-    [ICL_QUERY_3]
-    ...
-    [/ICL_QUERY_3]
+    [ICL_QUERY_COUNT]
+    <integer between 1 and {{icl_max_queries}}>
+    [/ICL_QUERY_COUNT]
+    [ICL_QUERIES]
+    - question 1
+    - question 2
+    [/ICL_QUERIES]
     [DOMAIN]
     ...
     [/DOMAIN]

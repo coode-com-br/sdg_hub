@@ -1,7 +1,7 @@
 metadata:
-  name: ICL Seed Generation Flow v2
-  description: Generates draft ICL seed fields from a processed document for knowledge tuning.
-  version: 2.0.0
+  name: ICL Seed Repair Flow
+  description: Repairs generated ICL fields based on validation feedback.
+  version: 1.0.0
   author: SDG Hub Contributors
   recommended_models:
     default: openai/gpt-oss-120b
@@ -14,41 +14,52 @@ metadata:
   - knowledge-tuning
   - preprocessing
   - icl
+  - repair
   license: Apache-2.0
   dataset_requirements:
     required_columns:
     - document
+    - document_outline
+    - icl_document
+    - icl_queries_text
+    - domain
+    - validation_feedback
     - icl_max_queries
-    description: Input dataset must include a document column with markdown or plain text.
+    description: Input dataset must include a failed ICL candidate and validator feedback.
 blocks:
 - block_type: PromptBuilderBlock
   block_config:
-    block_name: build_icl_prompt
+    block_name: build_icl_repair_prompt
     input_cols:
     - document
+    - document_outline
+    - icl_document
+    - icl_queries_text
+    - domain
+    - validation_feedback
     - icl_max_queries
-    output_cols: icl_prompt
-    prompt_config_path: prompts/generate_icl.yaml
+    output_cols: icl_repair_prompt
+    prompt_config_path: prompts/repair_icl.yaml
     format_as_messages: true
 - block_type: LLMChatBlock
   block_config:
-    block_name: gen_icl
-    input_cols: icl_prompt
-    output_cols: raw_icl
+    block_name: repair_icl
+    input_cols: icl_repair_prompt
+    output_cols: raw_icl_repair
     max_tokens: 1536
-    temperature: 0.3
+    temperature: 0.2
     n: 1
     async_mode: false
 - block_type: LLMResponseExtractorBlock
   block_config:
-    block_name: extract_icl
-    input_cols: raw_icl
+    block_name: extract_icl_repair
+    input_cols: raw_icl_repair
     extract_content: true
     expand_lists: true
 - block_type: TagParserBlock
   block_config:
-    block_name: parse_icl
-    input_cols: extract_icl_content
+    block_name: parse_icl_repair
+    input_cols: extract_icl_repair_content
     output_cols:
     - document_outline
     - icl_document
