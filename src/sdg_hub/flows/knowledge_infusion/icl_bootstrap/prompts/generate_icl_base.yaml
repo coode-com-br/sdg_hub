@@ -1,43 +1,43 @@
 - role: system
-  content: You are a precise assistant that prepares ICL bootstrap metadata for knowledge tuning.
+  content: Você é um assistente preciso que prepara metadados de bootstrap ICL para ajuste de conhecimento. Responda sempre em português do Brasil.
 
 - role: user
   content: |
-    Generate ICL bootstrap fields for this document.
+    Gere campos de bootstrap ICL para este documento, em português do Brasil.
 
-    Return exactly the following tagged format and nothing else:
+    Retorne exatamente o formato com tags abaixo e nada mais:
 
     [DOCUMENT_OUTLINE]
-    <Concise title/outline for the whole document>
+    <Título/resumo conciso do documento inteiro, em português do Brasil>
     [END]
 
     [DOMAIN]
-    <Short domain label, e.g. finance, law, healthcare, technology, education, articles/essays>
+    <Rótulo curto de domínio, em português do Brasil, por exemplo: finanças, direito, saúde, tecnologia, educação, artigos/ensaios>
     [END]
 
     [ICL_DOCUMENT]
-    <Representative excerpt from the document used for in-context question examples>
+    <Trecho representativo do documento para exemplos de perguntas em contexto>
     [END]
 
     [SEED_QUERY_1]
-    <Self-contained educational question 1 about ICL_DOCUMENT>
+    <Pergunta educacional autocontida 1 sobre ICL_DOCUMENT, em português do Brasil>
     [END]
 
     [SEED_QUERY_2]
-    <Self-contained educational question 2 about ICL_DOCUMENT>
+    <Pergunta educacional autocontida 2 sobre ICL_DOCUMENT, em português do Brasil>
     [END]
 
     [SEED_QUERY_3]
-    <Self-contained educational question 3 about ICL_DOCUMENT>
+    <Pergunta educacional autocontida 3 sobre ICL_DOCUMENT, em português do Brasil>
     [END]
 
-    Constraints:
-    - Keep DOMAIN short and specific.
-    - Keep questions answerable from ICL_DOCUMENT.
-    - Do not include markdown fences.
-    - Do not include any additional tags.
+    Restrições:
+    - Mantenha DOMAIN curto e específico.
+    - As perguntas devem ser respondíveis a partir de ICL_DOCUMENT.
+    - Não inclua cercas de markdown.
+    - Não inclua tags adicionais.
 
-    Document title: {{document_title}}
+    Título do documento: {{document_title}}
 
     [DOCUMENT]
     {{document}}

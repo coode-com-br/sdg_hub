@@ -92,7 +92,7 @@ blocks:
       seed_query_2: icl_query_2
       seed_query_3: icl_query_3
     output_cols: question_generation_prompt
-    prompt_config_path: ../enhanced_multi_summary_qa/extractive_summary/prompts/generate_question_list.yaml
+    prompt_config_path: prompts/generate_question_list_pt_br.yaml
     format_as_messages: true
 - block_type: LLMChatBlock
   block_config:
