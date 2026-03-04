@@ -1,0 +1,43 @@
+- role: system
+  content: You are a precise assistant that prepares ICL bootstrap metadata for knowledge tuning.
+
+- role: user
+  content: |
+    Generate ICL bootstrap fields for this document.
+
+    Return exactly the following tagged format and nothing else:
+
+    [DOCUMENT_OUTLINE]
+    <Concise title/outline for the whole document>
+    [END]
+
+    [DOMAIN]
+    <Short domain label, e.g. finance, law, healthcare, technology, education, articles/essays>
+    [END]
+
+    [ICL_DOCUMENT]
+    <Representative excerpt from the document used for in-context question examples>
+    [END]
+
+    [SEED_QUERY_1]
+    <Self-contained educational question 1 about ICL_DOCUMENT>
+    [END]
+
+    [SEED_QUERY_2]
+    <Self-contained educational question 2 about ICL_DOCUMENT>
+    [END]
+
+    [SEED_QUERY_3]
+    <Self-contained educational question 3 about ICL_DOCUMENT>
+    [END]
+
+    Constraints:
+    - Keep DOMAIN short and specific.
+    - Keep questions answerable from ICL_DOCUMENT.
+    - Do not include markdown fences.
+    - Do not include any additional tags.
+
+    Document title: {{document_title}}
+
+    [DOCUMENT]
+    {{document}}
