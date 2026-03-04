@@ -15,6 +15,13 @@
     * Varie a dificuldade mantendo o mesmo nível dos exemplos.
     * Use o mesmo formato dos exemplos.
     * Escreva TODAS as perguntas em português do Brasil.
+    * Gere exatamente 3 perguntas.
+    * Não repita literalmente as perguntas de exemplo.
+    * Não use reticências ("..."), placeholders, ou fragmentos.
+    * Todas as perguntas devem terminar com "?".
+    * Cada pergunta deve ter entre 12 e 28 palavras.
+    * Pelo menos uma pergunta deve exigir análise (impacto, critério, decisão ou trade-off), não apenas lembrança de um fato isolado.
+    * Não use referências dependentes de contexto como "no texto acima", "na tabela", "na figura".
 
     Siga estritamente este formato para cada pergunta:
 

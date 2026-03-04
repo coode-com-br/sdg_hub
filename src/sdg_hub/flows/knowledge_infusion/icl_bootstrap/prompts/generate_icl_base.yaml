@@ -36,6 +36,16 @@
     - As perguntas devem ser respondíveis a partir de ICL_DOCUMENT.
     - Não inclua cercas de markdown.
     - Não inclua tags adicionais.
+    - Gere exatamente 3 perguntas completas, uma em cada tag SEED_QUERY_*.
+    - Todas as perguntas devem terminar com "?".
+    - Não use reticências ("..."), placeholders, ou texto genérico.
+    - Não use perguntas vagas como "Qual é o objetivo do documento?" sem detalhamento.
+    - Não use referências dependentes de contexto como "no texto acima", "na tabela", "neste documento".
+    - Cada pergunta deve ter entre 12 e 28 palavras.
+    - As três perguntas devem ser distintas em foco:
+      1) compreensão do tema central;
+      2) aplicação prática/operacional;
+      3) análise de impacto, critério ou trade-off.
 
     Título do documento: {{document_title}}
 
