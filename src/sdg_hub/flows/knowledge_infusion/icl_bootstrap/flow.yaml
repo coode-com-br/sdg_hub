@@ -80,11 +80,6 @@ blocks:
     - '[END]'
     - '[END]'
     - '[END]'
-- block_type: DuplicateColumnsBlock
-  block_config:
-    block_name: duplicate_icl_document_to_document
-    input_cols:
-      icl_document: document
 - block_type: PromptBuilderBlock
   block_config:
     block_name: question_generation_prompt
