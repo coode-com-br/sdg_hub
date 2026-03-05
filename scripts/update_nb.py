@@ -1,70 +1,20 @@
-{
- "cells": [
-  {
-   "cell_type": "markdown",
-   "id": "83f458de",
-   "metadata": {},
-   "source": [
-    "# Document Pre-processing for Knowledge Tuning\n",
-    "\n",
-    "## Overview\n",
-    "\n",
-    "This notebook demonstrates a complete document preprocessing pipeline designed specifically for **knowledge tuning** with sdg-hub. \n",
-    "\n",
-    "## What This Notebook Does\n",
-    "\n",
-    "This preprocessing pipeline transforms raw documents (PDFs, Word docs, etc.) into seed data for data generation:\n",
-    "\n",
-    "1. **Document Parsing**: Converts raw documents to structured markdown format\n",
-    "2. **Chunking**: Splits documents into manageable chunks while preserving structure and context\n",
-    "3. **Seed Data Creation**: Formats chunks with in-context learning (ICL) templates for effective knowledge tuning\n",
-    "\n",
-    "## Prerequisites\n",
-    "\n",
-    "- We will use the existing InstructLab document parser (`docparser_v2.py`) and Document parsing configuration (`docling_v2_config.yaml`)\n",
-    "- Raw pdf documents in the `document_collection/` directory\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "daa22c74",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "# Step 1: Document Processing Pipeline\n",
-    "# Define the directory containing raw documents to be processed\n",
-    "data_dir = \"document_collection/\"\n",
-    "\n",
-    "# Run the document parser to convert documents to markdown\n",
-    "# - input-dir: Directory containing source documents\n",
-    "# - output-dir: Directory where processed markdown files will be saved\n",
-    "# - c: Configuration file specifying parsing parameters\n",
-    "!python ../docparser_v2.py --input-dir {data_dir} --output-dir {data_dir} -c ../docling_v2_config.yaml"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "295749b5",
-   "metadata": {},
-   "outputs": [],
-   "source": [
+import json
+
+notebook_path = "/home/raphael/develop/mlops/sdg_hub/examples/knowledge_tuning/enhanced_summary_knowledge_tuning/document_pre_processing.ipynb"
+
+with open(notebook_path, 'r', encoding='utf-8') as f:
+    nb = json.load(f)
+
+nb['cells'][2]['source'] = [
     "# Step 2: Install Required Dependencies\n",
     "# Install packages needed for document processing and text chunking\n",
     "\n",
     "#%pip install docling markdown-it-py\n",
     "#%pip install --upgrade transformers\n",
     "%pip install litellm python-dotenv"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "dd8a4a2a",
-   "metadata": {},
-   "outputs": [],
-   "source": [
+]
+
+new_cell_source = [
     "# Step 3 & 4: Load Documents, Chunk, and Generate Dynamic ICL\n",
     "import os\n",
     "import glob\n",
@@ -200,38 +150,11 @@
     "# Save to final output file\n",
     "seed_data.to_json(\"seed_data.jsonl\", orient=\"records\", lines=True)\n",
     "print(f\"\\nSuccessfully compiled {len(seed_data)} total chunks into seed_data.jsonl!\")\n"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "44f3ff7f",
-   "metadata": {},
-   "source": [
-    "### Next Steps:\n",
-    "- The seed_data.jsonl file is now ready for the knowledge tuning pipeline.\n",
-    "- You can now refer to the [knowledge generation](knowledge_generation.ipynb) notebook"
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "sdg_hub",
-   "language": "python",
-   "name": "python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.11.12"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
-}
+]
+
+nb['cells'][3]['source'] = new_cell_source
+del nb['cells'][4]
+
+with open(notebook_path, 'w', encoding='utf-8') as f:
+    json.dump(nb, f, indent=1, ensure_ascii=False)
+    f.write('\n')
