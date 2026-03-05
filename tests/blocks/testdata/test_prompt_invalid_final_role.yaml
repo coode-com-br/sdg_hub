@@ -1,5 +1,0 @@
-- role: user
-  content: "Hello, how are you?"
-
-- role: assistant
-  content: "I'm doing well, thank you!"

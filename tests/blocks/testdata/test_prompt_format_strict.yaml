@@ -1,6 +1,0 @@
-- role: user
-  content: |
-    This template requires: {{required_var}}
-    Must have: {{required_var}}
-    Example: {{required_var}}
-    Process: {{required_var}}
