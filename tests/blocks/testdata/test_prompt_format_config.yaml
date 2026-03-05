@@ -1,0 +1,9 @@
+- role: system
+  content: "You are a helpful assistant. Context: {{context}}"
+
+- role: user
+  content: |
+    Generate a response based on the following input
+    Be accurate and helpful
+    Example: Input: Hello. Output: Hi there!
+    Input: {{input_text}}
