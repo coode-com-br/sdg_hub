@@ -15,10 +15,23 @@ Apenas analise e entenda o `.env`. Ele está corretamente configurado?
 
 # 4
 
-Apenas analise e entenda o notebook `examples/knowledge_tuning/enhanced_summary_knowledge_tuning/knowledge_generation.ipynb`.
-Nos próximos passos vamos executar este notebook.
+Apenas analise e entenda os notebooks abaixo. Nos próximos passos vamos executar estes notebooks:
+
+- `examples/knowledge_tuning/enhanced_summary_knowledge_tuning/document_pre_processing.ipynb`
+- `examples/knowledge_tuning/enhanced_summary_knowledge_tuning/knowledge_generation.ipynb`.
 
 # 5
 
-Não usaremos o `seed_data.jsonl` gerado pelo passo anterior (`document_pre_processing`), porque o campo `icl` do notebook está com dados fixos do exemplo, que nada tem a ver com o conteúdo do documento `Feriados e Emendas de 2026.md`.
-Em `document_pre_processing.ipynb` o campo `icl` pode ser gerado dinamicamente a partir do conteúdo do documento `Feriados e Emendas de 2026.md`? O framework `sdg_hub` já tem essa funcionalidade pronta?
+Não usaremos o `seed_data.jsonl` gerado pelo passo anterior (`document_pre_processing`), porque o campo `icl` do notebook está com dados fixos do exemplo, que nada tem a ver com o conteúdo dos documentos em `data_dir = "document_collection/"`.
+
+## Tarefa
+
+Objetivo: Não ter o trabalho manual de formar o dicionário de icl. Usar exatamente a arquitetura que as empresas implementam em escala: o próprio LLM definindo seus pares de perguntas/respostas para orientar a extração em grande volume.
+
+Em `document_pre_processing.ipynb`:
+
+- Usar o litellm (que já é dependência do sdg_hub) para ler um parágrafo limpo de cada documento, gerar as três perguntas perfeitamente adequadas ao documento e injetá-las no seed_data.
+- Pegar automaticamente as linhas reais e coerentes de cada documento.
+- Envia isso pro modelo (OpenShift/vLLM via litellm).
+- Força ele a responder num formato JSON válido extraindo o resumo e 3 perguntas coerentes.
+- Anexar no seed_data.map para ser processado pelo `knowledge_generation.ipynb` de forma redonda, em ótimo Português do Brasil.
