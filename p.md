@@ -20,4 +20,5 @@ Nos próximos passos vamos executar este notebook.
 
 # 5
 
-Não usaremos o `seed_data.jsonl` gerado pelo passo anterior (`document_pre_processing`), porque o campo `icl` do notebook está com dados fixos do exemplo, que nada tem a ver com o conteúdo do documento `Feriados e Emendas de 2026`.
+Não usaremos o `seed_data.jsonl` gerado pelo passo anterior (`document_pre_processing`), porque o campo `icl` do notebook está com dados fixos do exemplo, que nada tem a ver com o conteúdo do documento `Feriados e Emendas de 2026.md`.
+Em `document_pre_processing.ipynb` o campo `icl` pode ser gerado dinamicamente a partir do conteúdo do documento `Feriados e Emendas de 2026.md`? O framework `sdg_hub` já tem essa funcionalidade pronta?
