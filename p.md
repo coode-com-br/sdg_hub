@@ -30,8 +30,9 @@ Objetivo: Não ter o trabalho manual de formar o dicionário de icl. Usar exatam
 
 Em `document_pre_processing.ipynb`:
 
-- Usar o litellm (que já é dependência do sdg_hub) para ler um parágrafo limpo de cada documento, gerar as três perguntas perfeitamente adequadas ao documento e injetá-las no seed_data.
-- Pegar automaticamente as linhas reais e coerentes de cada documento.
-- Envia isso pro modelo (OpenShift/vLLM via litellm).
-- Força ele a responder num formato JSON válido extraindo o resumo e 3 perguntas coerentes.
-- Anexar no seed_data.map para ser processado pelo `knowledge_generation.ipynb` de forma redonda, em ótimo Português do Brasil.
+- Carregar e processar em Markdown todos os arquivos dentro do diretório `data_dir`.
+- O sistema agrupa os chunks sabendo de qual "arquivo fonte" eles vieram.
+- Para cada arquivo fonte, ele pega 1 parágrafo representativo formata um prompt para o LLM via litellm.
+- O LLM retorna o objeto JSON (com o documento, as 3 queries perfeitamente adequadas ao documento, na linguagem configurada em `SDG_LANG` e `SDG_LANG_CODE`, domínio etc.).
+- Esse objeto de referência fica guardado temporariamente na memória, e em seguida, o código aplica aquele "ICL template" para todos os chunks que nasceram daquele mesmo arquivo.
+- Tudo isso é acumulado para formar um gigantesco objeto Hugging Face Dataset, que por fim, é exportado em escala para o seed_data.jsonl único!
