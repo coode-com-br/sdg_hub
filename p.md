@@ -25,7 +25,8 @@ Nos próximos passos vamos adaptar esses notebooks para minha necessidade:
 
 # 5
 
-Não usaremos o `seed_data.jsonl` gerado pelo notebook (`document_pre_processing`), porque o campo `icl` do notebook está com dados fixos do exemplo, que nada tem a ver com o conteúdo dos documentos em `data_dir = "document_collection/"`, que vamos usar.
+Adaptar `document_pre_processing`.
+Em `document_pre_processing`, não usaremos o `seed_data.jsonl`, porque o campo `icl` do notebook está com dados fixos do exemplo, que nada tem a ver com o conteúdo dos documentos em `data_dir = "document_collection/"`, que vamos usar.
 
 ## Tarefa
 
@@ -61,3 +62,11 @@ Em `document_pre_processing.ipynb`, implementar:
 
 - **Compilação do Dataset**: Toda a massa atômica de chunks processados, somada aos respectivos ICLs dinâmicos de cada arquivo-fonte, é fundida para instanciar um gigantesco e estruturado pacote `Hugging Face Dataset`.
 - **Exportação Única do Pipeline**: Ao final, os dados enriquecidos são gravados simultaneamente num único superarquivo (o `seed_data.jsonl`). Esse formato de saída fornece o terreno perfeito e massivo para alimentar as etapas de _Tuning Workflow_ com contexto denso adaptado para casos como RH, Leis, TI ou Documentos Corporativos.
+
+# 6
+
+Adaptar `knowledge_generation`.
+Em `knowledge_generation` não usaremos o `QuALITY Benchmark dataset`.
+Planeje alterar a função `create_seed_data_from_quality_benchmark` para usar o `seed_data.jsonl` gerado pelo notebook `document_pre_processing` (Alterar o nome da função para `create_seed_data_from_document_pre_processing`).
+Analise o notebook `knowledge_generation` e planeje as alterações necessárias para para que funcione com o `seed_data.jsonl` gerado pelo notebook `document_pre_processing`, e com a linguagem português do Brasil.
+Garanta que todo o notebook execute sem erros, e aderente Golden Path ao framework SDG_HUB.
