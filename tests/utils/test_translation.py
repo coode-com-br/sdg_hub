@@ -324,6 +324,37 @@ class TestTranslateAndVerify:
         assert issues == []
         assert mock_translate.call_count == 2
 
+    @patch("sdg_hub.core.utils.translation._verify_translation")
+    @patch("sdg_hub.core.utils.translation._translate_text")
+    def test_repairs_translated_jinja_variables(self, mock_translate, mock_verify):
+        from sdg_hub.core.utils.translation import _translate_and_verify
+
+        source = "Document:\n{{document_outline}}\n{{document}}"
+        # Simulate variable-name translation by a weaker multilingual model
+        mock_translate.return_value = "Documento:\n{{outline_do_documento}}\n{{documento}}"
+        mock_verify.return_value = "PASS"
+
+        translated, issues = _translate_and_verify(
+            source,
+            "Portuguese (Brazil)",
+            "test/model",
+            None,
+            None,
+            "test/verifier",
+            None,
+            None,
+            1,
+            "test-label",
+            structural_tags=frozenset(),
+            tag_rule="- No tags",
+        )
+
+        assert issues == []
+        assert "{{document_outline}}" in translated
+        assert "{{document}}" in translated
+        assert "{{outline_do_documento}}" not in translated
+        assert "{{documento}}" not in translated
+
 
 # ---------------------------------------------------------------------------
 # translate_flow (integration test with mocked LLM)
@@ -379,3 +410,70 @@ class TestTranslateFlow:
         translated_prompt = (out / "prompts" / "my_prompt_es.yaml").read_text()
         assert "# Prompt used in: test flow" in translated_prompt
         assert "# Origin: test/simple_es" in translated_prompt
+
+    def test_keeps_original_prompt_path_when_translation_fails(self, tmp_path):
+        from sdg_hub.core.utils.translation import translate_flow
+
+        flow = {
+            "metadata": {
+                "name": "Mixed Translation Flow",
+                "id": "mixed-flow-1",
+                "version": "1.0.0",
+            },
+            "blocks": [
+                {
+                    "block_type": "PromptBuilderBlock",
+                    "block_config": {
+                        "block_name": "prompt_a",
+                        "prompt_config_path": "a.yaml",
+                    },
+                },
+                {
+                    "block_type": "PromptBuilderBlock",
+                    "block_config": {
+                        "block_name": "prompt_b",
+                        "prompt_config_path": "b.yaml",
+                    },
+                },
+            ],
+        }
+
+        flow_path = tmp_path / "flow.yaml"
+        flow_path.write_text(yaml.dump(flow))
+        (tmp_path / "a.yaml").write_text(yaml.dump([{"role": "user", "content": "A"}]))
+        (tmp_path / "b.yaml").write_text(yaml.dump([{"role": "user", "content": "B"}]))
+
+        out = tmp_path / "translated"
+        sentinel = MagicMock()
+        with (
+            patch("sdg_hub.core.utils.translation.FlowRegistry") as mock_registry,
+            patch("sdg_hub.core.utils.translation.Flow") as mock_flow_cls,
+            patch("sdg_hub.core.utils.translation._translate_prompt_yaml") as mock_tpy,
+        ):
+            mock_registry.get_flow_path_safe.return_value = str(flow_path)
+            mock_registry.get_flow_path.return_value = None
+            mock_flow_cls.from_yaml.return_value = sentinel
+
+            # First prompt translated, second fails validation and is skipped
+            mock_tpy.side_effect = [[], ["b.yaml [user]: mock failure"]]
+
+            result = translate_flow(
+                flow="mixed-flow-1",
+                lang="Spanish",
+                lang_code="es",
+                translator_model="test/model",
+                verifier_model="test/verifier",
+                output_dir=str(out),
+            )
+
+        assert result is sentinel
+
+        with open(out / "flow.yaml") as f:
+            translated_flow = yaml.safe_load(f)
+
+        assert (
+            translated_flow["blocks"][0]["block_config"]["prompt_config_path"]
+            == "prompts/a_es.yaml"
+        )
+        # Must remain original path because translation failed for b.yaml
+        assert translated_flow["blocks"][1]["block_config"]["prompt_config_path"] == "b.yaml"

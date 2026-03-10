@@ -27,6 +27,7 @@ logger = setup_logger(__name__)
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 _TRANSLATION_PROMPT = PromptTemplateConfig(str(_PROMPTS_DIR / "translation.yaml"))
 _VERIFICATION_PROMPT = PromptTemplateConfig(str(_PROMPTS_DIR / "verification.yaml"))
+_JINJA_VAR_PATTERN = re.compile(r"\{\{\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\}\}")
 
 
 # ---------------------------------------------------------------------------
@@ -200,8 +201,8 @@ def _validate_translation(
     issues: list[str] = []
 
     # Check Jinja2 template variables
-    source_vars = set(re.findall(r"\{\{\w+\}\}", source))
-    translated_vars = set(re.findall(r"\{\{\w+\}\}", translated))
+    source_vars = set(_extract_jinja_vars(source))
+    translated_vars = set(_extract_jinja_vars(translated))
     missing_vars = source_vars - translated_vars
     extra_vars = translated_vars - source_vars
     if missing_vars:
@@ -257,6 +258,47 @@ def _clean_content(text: str) -> str:
     return "\n".join(line.rstrip() for line in text.split("\n"))
 
 
+def _normalize_jinja_var(var: str) -> str:
+    """Normalize Jinja2 variable token to canonical ``{{name}}`` format."""
+    inner = var[2:-2].strip()
+    return f"{{{{{inner}}}}}"
+
+
+def _extract_jinja_vars(text: str) -> list[str]:
+    """Extract Jinja2 variable tokens in source order."""
+    return [_normalize_jinja_var(m.group(0)) for m in _JINJA_VAR_PATTERN.finditer(text)]
+
+
+def _repair_jinja_vars_by_position(source: str, translated: str) -> str:
+    """Repair translated Jinja2 variable names by positional replacement.
+
+    Some multilingual models translate variable names (e.g., ``{{document}}`` to
+    ``{{documento}}``). When source and translated have the same number of
+    variable tokens, replace translated tokens in order with source tokens to
+    preserve template compatibility.
+    """
+    source_vars = _extract_jinja_vars(source)
+    translated_vars = _extract_jinja_vars(translated)
+
+    if not source_vars or len(source_vars) != len(translated_vars):
+        return translated
+    if source_vars == translated_vars:
+        return translated
+
+    idx = 0
+
+    def _replace(_match: re.Match[str]) -> str:
+        nonlocal idx
+        if idx < len(source_vars):
+            replacement = source_vars[idx]
+            idx += 1
+            return replacement
+        idx += 1
+        return _match.group(0)
+
+    return _JINJA_VAR_PATTERN.sub(_replace, translated)
+
+
 # ---------------------------------------------------------------------------
 # Translate-and-verify loop
 # ---------------------------------------------------------------------------
@@ -280,6 +322,13 @@ def _translate_and_verify(
     """Translate with retry loop driven by programmatic + LLM verification."""
     issues: list[str] = []
     translated_content = content  # fallback if max_retries == 0
+    source_jinja_vars = _extract_jinja_vars(content)
+    effective_tag_rule = tag_rule
+    if source_jinja_vars:
+        effective_tag_rule = (
+            f"{tag_rule}\n"
+            f"- Preserve these Jinja2 variables exactly: {', '.join(source_jinja_vars)}"
+        )
 
     for attempt in range(1, max_retries + 1):
         logger.debug("%s: attempt %d/%d", label, attempt, max_retries)
@@ -290,9 +339,10 @@ def _translate_and_verify(
             translator_model,
             translator_api_key,
             translator_api_base,
-            tag_rule=tag_rule,
+            tag_rule=effective_tag_rule,
         )
         translated_content = _clean_content(translated_content)
+        translated_content = _repair_jinja_vars_by_position(content, translated_content)
 
         logger.debug(
             "%s: translated %d -> %d chars",
@@ -522,6 +572,23 @@ def _adapt_flow_yaml(
     logger.info("Created %s (id=%s)", meta["name"], meta["id"])
 
 
+def _flow_references_missing_prompts(flow_yaml_path: Path) -> list[str]:
+    """Return prompt paths referenced by ``flow.yaml`` that do not exist."""
+    with open(flow_yaml_path, encoding="utf-8") as f:
+        flow_def = yaml.safe_load(f)
+
+    missing: list[str] = []
+    for block in flow_def.get("blocks", []):
+        config = block.get("block_config", {})
+        prompt_rel = config.get("prompt_config_path")
+        if not prompt_rel:
+            continue
+        prompt_path = flow_yaml_path.parent / prompt_rel
+        if not prompt_path.exists():
+            missing.append(str(prompt_path))
+    return missing
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -591,14 +658,32 @@ def translate_flow(
 
     # Skip if already translated — check registry and output directory
     translated_id = f"{flow}-{lang_code}"
-    if FlowRegistry.get_flow_path(translated_id) is not None:
-        logger.info("Flow '%s' already registered, skipping translation", translated_id)
-        return Flow.from_yaml(FlowRegistry.get_flow_path_safe(translated_id))
-    if output_path.exists() and (output_path / flow_yaml.name).exists():
-        logger.info(
-            "Output directory '%s' already exists, skipping translation", output_path
+    existing_registered_path = FlowRegistry.get_flow_path(translated_id)
+    if existing_registered_path is not None:
+        missing = _flow_references_missing_prompts(Path(existing_registered_path))
+        if not missing:
+            logger.info(
+                "Flow '%s' already registered, skipping translation", translated_id
+            )
+            return Flow.from_yaml(FlowRegistry.get_flow_path_safe(translated_id))
+        logger.warning(
+            "Registered translated flow has missing prompts; recreating translation: %s",
+            missing,
         )
-        return Flow.from_yaml(str(output_path / flow_yaml.name))
+
+    existing_output_flow = output_path / flow_yaml.name
+    if output_path.exists() and existing_output_flow.exists():
+        missing = _flow_references_missing_prompts(existing_output_flow)
+        if not missing:
+            logger.info(
+                "Output directory '%s' already exists, skipping translation",
+                output_path,
+            )
+            return Flow.from_yaml(str(existing_output_flow))
+        logger.warning(
+            "Existing translated flow output has missing prompts; recreating translation: %s",
+            missing,
+        )
 
     # Parse flow YAML once — discover prompts and structural tags together
     prompt_yamls, structural_tags = _parse_flow_yaml(flow_yaml)
@@ -627,6 +712,7 @@ def translate_flow(
 
     # Translate prompt YAMLs
     all_issues: list[str] = []
+    translated_basenames: set[str] = set()
     for source_path, out_path in prompt_mapping.items():
         issues = _translate_prompt_yaml(
             source_path,
@@ -644,9 +730,15 @@ def translate_flow(
             lang_code=lang_code,
         )
         all_issues.extend(issues)
+        if issues:
+            logger.warning(
+                "Prompt '%s' failed validation; keeping original prompt path in translated flow",
+                source_path.name,
+            )
+        else:
+            translated_basenames.add(source_path.name)
 
     # Adapt flow YAML — only rewrite paths for prompts we actually translated
-    translated_basenames = {src.name for src in prompt_yamls}
     _adapt_flow_yaml(flow_yaml, flow_out, lang, lang_code, translated_basenames)
 
     # Summary
