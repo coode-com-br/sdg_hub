@@ -12,6 +12,11 @@ Nos próximos passos usaremos o framework para adaptar a linguagem português do
 
 # 3
 
+Analise o modelo `https://huggingface.co/RedHatAI/Qwen2.5-7B-Instruct-quantized.w4a16`.
+Você recomenda esse modelo para tradução para pt-BR?
+
+# 4
+
 Apenas analise e entenda o `.env`.
 O `.env` está corretamente configurado?
 
